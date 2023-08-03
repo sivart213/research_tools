@@ -73,7 +73,9 @@ def map_plt(
     show=True,
     **kwargs,
 ):
-    """Calculate. generic discription."""
+    """
+    Create a map plot using contourf.
+    """
     style.use("seaborn-colorblind")
 
     if xlimit == [0, 0]:
