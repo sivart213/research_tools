@@ -1,2 +1,2 @@
-# DEfECT_Toolkit
+# Research_Tools
 Container for functions and equations
