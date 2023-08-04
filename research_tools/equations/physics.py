@@ -11,9 +11,9 @@ General function file
 import numpy as np
 import sympy as sp
 
-from defect_code.functions import get_const, has_units, has_arrays, pick_math_module
+from research_tools.functions import get_const, has_units, has_arrays, pick_math_module
 
-from defect_code.equations.general import inv_sum_invs, erfc
+from research_tools.equations.general import inv_sum_invs, erfc
 
 
 # %% Electrical

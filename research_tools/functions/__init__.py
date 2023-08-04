@@ -5,6 +5,7 @@ Created on Wed Sep 21 16:54:59 2022
 @author: j2cle
 """
 from .data_treatment import (
+    all_symbols,
     closest,
     Complexer,
     convert_prefix,
@@ -28,13 +29,12 @@ from .data_treatment import (
     get_const,
     has_arrays,
     has_symbols,
-    all_symbols,
-    pick_math_module,
     has_units,
     myprint,
     myround,
-    parse_unit,
     parse_constant,
+    parse_unit,
+    pick_math_module,
     precise_round,
     sample_array,
     sci_note,
@@ -42,7 +42,17 @@ from .data_treatment import (
     sig_figs_round,
     solve_for_variable,
 )
-from .plotters import bode, bode2, lineplot_slider, map_plt, nyquist, nyquist2, scatter
+
+from .plotters import (
+    bode,
+    bode2,
+    lineplot_slider,
+    map_plt,
+    nyquist,
+    nyquist2,
+    scatter,
+)
+
 from .system_utilities import (
     f_find,
     get_config,
@@ -56,7 +66,9 @@ from .system_utilities import (
     slugify,
 )
 
+
 __all__ = [
+    "all_symbols",
     "closest",
     "Complexer",
     "convert_prefix",
@@ -80,13 +92,12 @@ __all__ = [
     "get_const",
     "has_arrays",
     "has_symbols",
-    "all_symbols",
-    'pick_math_module',
     "has_units",
     "myprint",
     "myround",
-    "parse_unit",
     "parse_constant",
+    "parse_unit",
+    "pick_math_module",
     "precise_round",
     "sample_array",
     "sci_note",

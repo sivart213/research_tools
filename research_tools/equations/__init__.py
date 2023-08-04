@@ -15,8 +15,8 @@ from .general import (
     CtoR,
     erf,
     erfc,
-    erfinv,
     erfcinv,
+    erfinv,
     FtoC,
     FtoK,
     FtoR,
@@ -35,6 +35,7 @@ from .general import (
     Statistics,
     tand,
 )
+
 from .physics import (
     bandgap_paessler,
     bandgap_schenk,
@@ -80,6 +81,7 @@ from .physics import (
     v_thermal,
     voltage_divider,
 )
+
 from .solar import (
     base_resistance,
     busbar_resistance,
@@ -137,8 +139,8 @@ __all__ = [
     "CtoR",
     "erf",
     "erfc",
-    "erfinv",
     "erfcinv",
+    "erfinv",
     "FtoC",
     "FtoK",
     "FtoR",

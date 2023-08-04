@@ -20,7 +20,7 @@ from pathlib import Path
 from datetime import datetime as dt
 from inspect import getmembers
 
-from defect_code.functions.data_treatment import dict_df, dict_flat, dict_key_sep
+from research_tools.functions.data_treatment import dict_df, dict_flat, dict_key_sep
 
 # warnings.simplefilter("ignore", np.RankWarning)
 # warnings.filterwarnings("ignore")
@@ -172,8 +172,21 @@ def p_find(*dir_in, as_list=False, **kwargs):
         dir_path = Path("D:\\", *dir_path.parts[1:])
 
     if not dir_path.exists():
+        filesurvey = []
+        for row in os.walk(base_path):  # Walks through current path
+            for foldname in row[1]:  # row[2] is the file name
+                full_path: Path = Path(row[0]) / Path(foldname)  # row[0] ist der Ordnerpfad
+                if (full_path / Path(*dir_in)).exists():
+                    filesurvey.append(full_path / Path(*dir_in))
+
+        dir_path = filesurvey[0]
+        for f in filesurvey:
+            dir_path = f if len(f.parts) < len(dir_path.parts) else dir_path
+
+
+    if not dir_path.exists():
         for p in dir_path.parents:
-            if len(p.parts) <= len(Path.home().parts):
+            if len(p.parts) >= len(Path.home().parts):
                 print("pathified")
                 return Path(
                     pathify(*Path(*dir_in).parts, target=kwargs.get("target", None))
@@ -184,7 +197,7 @@ def p_find(*dir_in, as_list=False, **kwargs):
     return dir_path
 
 
-def f_find(path, search=False, res_type="path", file_filter=None):
+def f_find(path, search=False, res_type="path", re_filter=None):
     path = Path(path)
     if search:
         res = f_find(path.parent)
@@ -192,9 +205,10 @@ def f_find(path, search=False, res_type="path", file_filter=None):
 
     filesurvey = []
     for row in os.walk(Path(path)):  # Walks through current path
-        for filename in row[2]:  # row[2] is the file name
-            full_path: Path = Path(row[0]) / Path(filename)  # row[0] ist der Ordnerpfad
-            if file_filter is None or file_filter in full_path.name:
+        for filename in row[2]:  # row[2] is the file name re.search(r"(.h5|.hdf5)$", str(file))
+            full_path: Path = Path(row[0]) / Path(filename)  # row[0]
+            if re_filter is None or re.search(re_filter, full_path.name):
+            # if re_filter is None or re_filter in full_path.name:
                 filesurvey.append(
                     dict(
                         path=full_path,
@@ -339,7 +353,7 @@ def load(file, path=None, pdkwargs={}, hdfkwargs={}, **kwargs):
         if kwargs.get("flat_df", False):
             data = dict_df(dict_flat(data))
     elif file.exists() and file.is_dir():
-        filelist = f_find(file, file_filter=kwargs.get("file_filter", ""))
+        filelist = f_find(file, re_filter=kwargs.get("file_filter", kwargs.get("re_filter", "")))
         return [load(f, None, pdkwargs, hdfkwargs, **kwargs) for f in filelist]
     return data, attrs
 

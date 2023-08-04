@@ -19,9 +19,9 @@ from pathlib import Path
 from matplotlib import ticker
 from matplotlib.widgets import Slider, Button
 
-# from defect_code.functions import slugify, p_find, sig_figs_ceil, sci_note
-from defect_code.functions.system_utilities import slugify, p_find
-from defect_code.functions.data_treatment import sig_figs_ceil, sci_note
+# from research_tools.functions import slugify, p_find, sig_figs_ceil, sci_note
+from research_tools.functions.system_utilities import slugify, p_find
+from research_tools.functions.data_treatment import sig_figs_ceil, sci_note
 
 warnings.simplefilter("ignore", np.RankWarning)
 warnings.filterwarnings("ignore")
@@ -33,7 +33,7 @@ if "kindlmann" not in mpl.colormaps() or "kindlmann_r" not in mpl.colormaps():
     Path()
     csv = pd.read_csv(
         p_find(
-            r"defect_code\functions\kindlmann-tables\kindlmann-table-float-1024.csv",
+            r"research_tools\functions\kindlmann-tables\kindlmann-table-float-1024.csv",
             base="cwd",
         )
     )

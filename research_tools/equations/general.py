@@ -15,7 +15,7 @@ import scipy.special as scs
 from sklearn import metrics
 from scipy import stats, optimize, linalg
 
-from defect_code.functions import get_const, has_units
+from research_tools.functions import get_const, has_units
 
 
 # %% General
