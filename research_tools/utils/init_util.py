@@ -126,4 +126,4 @@ if __name__ == "__main__":
     # print_init(target, p_find(target, base=Path.cwd().parent), ignore=ignores)
 
 
-    manage_research_tools()
+    manage_research_tools(deep_copy=True, ignore=["archive", "utils"])
