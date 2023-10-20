@@ -66,6 +66,7 @@ def print_init(target, pth=None, ignore=None):
     for k, v in res.items():
         print("    \"", end="")
         print(*v, sep = "\",\n    \"", end="\",\n")
+        print("")
     print("]\n")
 
 
@@ -96,14 +97,14 @@ def manage_research_tools(source=None, base=None, ignore="archive", **kwargs):
             rmtree(p/p.stem/source.stem, ignore_errors=True)
             copytree(
                 source/source.stem,
-                p/p.stem/source.stem,
+                p/source.stem,
                 ignore=ignore_patterns(*ignore),
                 dirs_exist_ok=True,
             )
         elif kwargs.get("copy", True):
             copytree(
                 source/source.stem,
-                p/p.stem/source.stem,
+                p/source.stem,
                 ignore=ignore_patterns(*ignore),
                 dirs_exist_ok=True,
             )
@@ -112,8 +113,8 @@ def manage_research_tools(source=None, base=None, ignore="archive", **kwargs):
 if __name__ == "__main__":
     from research_tools.functions import p_find, f_find
 
-    target = "functions"
-    files = f_find(p_find(target, base=Path.cwd().parent), re_filter=r"[^_][.]py$")
+    target = "research_tools"
+    files = f_find(p_find(target, base=Path.cwd()), re_filter=r"[^_][.]py$")
     ignores = [
         "unit_conversion",
         "chemistry",
@@ -126,4 +127,4 @@ if __name__ == "__main__":
     # print_init(target, p_find(target, base=Path.cwd().parent), ignore=ignores)
 
 
-    manage_research_tools(ignore=["archive", "utils"])
+    manage_research_tools(ignore=["archive", "utils", ".obsidian", "Obsidian Code"])
