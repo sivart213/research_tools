@@ -6,7 +6,7 @@ Currently each project has a sub-folder containing the code in this package.  Th
 
 ## Contents
 - `utils`: Contains project management scripts unrelated to the library
-    - `init_util.py`: Create str for __init__ files or push updates to all packages
+    - `init_util.py`: Create str for `__init__.py` files or push updates to all packages
     - `gen_package_list.py`: create an env.yml
 - `equations`: Contains scripts w/ basic equations which can be called an manipulated
 - `functions`: Contains useful operational functions to interface with data or os
