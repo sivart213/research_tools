@@ -435,6 +435,26 @@ def curve_fit_wrap(fcn, pnts, **params):
 
 # %% Converters
 def convert_val(val, iunit, funit, expon=1):
+    """
+    Converts values from one unit to another by sanitizing the input and using sympy.convert_to()
+
+    Parameters
+    ----------
+    val : [int, float, list/tuple/array/series of int/float]
+        input value(s) to be converted
+    iunit : [str, sympy.unit]
+        current unit of val
+    funit : [list, str]
+        desired units
+    expon : int
+        exponential value of unit
+        default : 1
+    
+    Returns
+    -------
+    val : [float, array/series of floats]
+        returns float version of value using sympy.convert_to
+    """
     if isinstance(val, (list, tuple, np.ndarray, pd.Series)):
         res = [convert_val(v, iunit, funit, expon) for v in val]
         if isinstance(val, np.ndarray):
