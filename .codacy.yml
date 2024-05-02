@@ -1,0 +1,8 @@
+---
+exclude_paths:
+  - 'research_tools/_version.py'
+  - 'tests/**/*'
+  - 'tests/*'
+  - 'benchmarks/**/*'
+  - 'setup.py'
+  - 'versioneer.py'

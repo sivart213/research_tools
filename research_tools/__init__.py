@@ -4,6 +4,9 @@ Created on Wed Sep 21 16:54:59 2022.
 
 @author: j2cle
 """
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
 
 from .equations.general import (
     arc,
