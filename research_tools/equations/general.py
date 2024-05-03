@@ -15,7 +15,7 @@ import scipy.special as scs
 from sklearn import metrics
 from scipy import stats, optimize, linalg
 
-from research_tools.functions import get_const, has_units, extract_variable, ode_bounds
+from ..functions import get_const, has_units, extract_variable, ode_bounds
 
 
 # %% General

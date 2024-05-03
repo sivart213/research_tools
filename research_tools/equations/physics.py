@@ -11,7 +11,7 @@ General function file
 import numpy as np
 import sympy as sp
 
-from research_tools.functions import (
+from ..functions import (
     get_const,
     has_units,
     has_arrays,
@@ -19,7 +19,7 @@ from research_tools.functions import (
     all_symbols,
 )
 
-from research_tools.equations.general import inv_sum_invs, erfc
+from .general import inv_sum_invs, erfc
 
 
 # %% Electrical

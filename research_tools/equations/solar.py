@@ -11,9 +11,9 @@ General function file
 import numpy as np
 import sympy as sp
 
-from research_tools.functions import get_const, has_units, all_symbols
+from ..functions import get_const, has_units, all_symbols
 
-from research_tools.equations.physics import ni_Si, mobility_generic
+from .physics import ni_Si, mobility_generic
 
 
 # %% Quantum Efficiency
