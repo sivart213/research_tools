@@ -1,8 +1,19 @@
 # Research_Tools
-Container for functions and equations
+Package for generic functions and equations compiled from various sources during my PhD career.
 
 ## Description
-Currently each project has a sub-folder containing the code in this package.  The intention will be to downselect only the relavent tools once those packages are no longer being changed.  Until then, the tools package can be updated here and changes are pushed locally to the other repositories by running the `init_util.py` script.
+This is a non-production package which is used by my other packages.  
+
+## Installation
+Currently, the only proven install method for this repo is to download the repository to your code folder and pip install via:
+
+    pip install -e "path\to\your\python\project"
+
+If using conda, be sure install in a separate environment to protect your installation.
+
+### Alternate
+Code should also be available for use if "toolbox" folder is placed into your own directory
+
 
 ## Contents
 - `utils`: Contains project management scripts unrelated to the library
