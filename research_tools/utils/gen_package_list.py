@@ -153,8 +153,10 @@ def gen_env_list(files, env_nm = "env", exclude=None, out_path=None, version=Fal
         return
     else:
         return depd
+    
+target = ["research_tools"]
+# target = ["impedance_analysis", "ion_migration", "iv_analysis"]
 
-target = ["impedance_analysis", "ion_migration", "iv_analysis"]
 # files = f_find(p_find(target, base=Path.cwd()), re_filter=r"[^_][.]py$")
 files = [
     f_find(p_find(t, base=Path.cwd()), re_filter=r"[^_][.]py$") for t in target
@@ -164,6 +166,6 @@ files = [
 ]
 exclude = [f.stem for f in files]
 
-gen_env_list(files, "JC_env", exclude, Path.home(), False, False)
+gen_env_list(files, "requirements", exclude, Path.home(), True, False)
 
 

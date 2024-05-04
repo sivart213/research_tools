@@ -183,6 +183,7 @@ def p_find(*dir_in, as_list=False, **kwargs):
         return [p_find(d, **kwargs) for d in dir_in]
 
     # Drive list
+    # TODO remove psutil.  It's included to allow for multi-platform use
     drives = [
         Path(dp.device)
         for dp in psutil.disk_partitions()
@@ -751,3 +752,5 @@ class PickleJar:
 
 if __name__ == "__main__":
     from inspect import getmembers
+    
+    
