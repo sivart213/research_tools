@@ -11,33 +11,30 @@ yaml
 
 matplotlib
 seaborn
+
 psutil
 
 periodictable
 pyswarms
 
+# # Preferred IDE but not required
+# spyder
 
-
-spyder
-
-
-
-
-# Required but part of python
-importlib_metadata
-pathlib
-python
-pip
-re
-collections
-dataclasses
-inspect
-warnings
-unicodedata
-configparser
-datetime
-logging
-shutil
-subprocess
-ast
-json
+# # Required but part of python https://github.com/sivart213/research_tools/archive/refs/tags/v0.0-apha.0.zip
+# importlib_metadata
+# pathlib
+# python
+# pip
+# re
+# collections
+# dataclasses
+# inspect
+# warnings
+# unicodedata
+# configparser
+# datetime
+# logging
+# shutil
+# subprocess
+# ast
+# json
