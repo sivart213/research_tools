@@ -5,14 +5,19 @@ Package for generic functions and equations compiled from various sources during
 This is a non-production package which is used by my other packages.  
 
 ## Installation
-Currently, the only proven install method for this repo is to download the repository to your code folder and pip install via:
+
+Option 1: download the repository to your code folder and pip install via:
 
     pip install -e "path\to\your\python\project"
+
+Option 2: pip install directly from github
+
+    pip install "git+https://github.com/sivart213/research_tools#egg=research_tools"
 
 If using conda, be sure install in a separate environment to protect your installation.
 
 ### Alternate
-Code should also be available for use if "toolbox" folder is placed into your own directory
+Code should also be available for use if "research_tools" folder is placed into your own directory
 
 
 ## Contents
