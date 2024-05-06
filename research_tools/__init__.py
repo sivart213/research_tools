@@ -8,7 +8,7 @@ from ._version import get_versions
 __version__ = get_versions()['version']
 del get_versions
 
-from .equations.general import (
+""" from .equations.general import (
     arc,
     arccosd,
     arcsind,
@@ -398,3 +398,4 @@ __all__ = [
     "slugify",
 
 ]
+ """
