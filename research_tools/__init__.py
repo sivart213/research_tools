@@ -3,6 +3,8 @@
 Created on Wed Sep 21 16:54:59 2022.
 
 @author: j2cle
+
+This is a simple adjustment
 """
 from ._version import get_versions
 __version__ = get_versions()['version']
