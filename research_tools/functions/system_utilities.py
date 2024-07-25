@@ -12,7 +12,8 @@ import sys
 import h5py
 import dill
 import difflib
-import psutil
+import ctypes
+import itertools
 import numpy as np
 import pandas as pd
 import unicodedata
@@ -35,6 +36,9 @@ from .data_treatment import (
 
 # %% Path resolving functions
 def pathify(*dir_in, target=None):
+    """
+    Depreciated. Use find_path instead.
+    """
     cwd = os.getcwd()
     sep = os.sep
     if len(dir_in) == 0:
@@ -147,147 +151,21 @@ def pathify(*dir_in, target=None):
 
 def p_find(*dir_in, as_list=False, **kwargs):
     """
-    Find file path as quickly as possible.
-
-    Currently creates a Path obj from the dir_in list and compares it to the base
-
-    base options, cwd, home, sys.argv (originating file)
-
-    relative -> NameError
-    Parameters
-    ----------
-    dir_in : str(s), Path
-        tuple of strings
-    as_list : bool, optional
-        Iterate find_path for each dir in returning a list of paths.
-    kwargs :
-
-
-    Returns
-    -------
-    dir_path : Path
-        Return a windows or posix path object.
+    Depreciated. Use find_path instead.
     """
-    if len(dir_in) == 1 and isinstance(dir_in[0], (list, np.ndarray)):
-        dir_in = list(dir_in[0])
-
-    if Path(*dir_in).exists():
-        return Path(*dir_in)
-
-    if isinstance(dir_in, Path):
-        dir_in = dir_in[0].parts
-
-    if as_list:
-        return [find_path(d, **kwargs) for d in dir_in]
-
-    # Drive list
-    # TODO remove psutil.  It's included to allow for multi-platform use
-    drives = [
-        Path(dp.device)
-        for dp in psutil.disk_partitions()
-        if dp.fstype.lower() in ["ntfs", "fuseblk", "ext4"]
-    ]
-
-    def chng_dr(dr, pth):
-        return dr / Path(*pth.parts[1:])
-
-    base_path = kwargs.get("base", Path.home() / "Documents")
-    if isinstance(base_path, str) and base_path in ["cwd", "home"]:
-        base_path = getattr(Path, base_path)()
-    if base_path is None:
-        base_path = Path.home() / "Documents"
-
-    if not base_path.exists():
-        paths = [
-            chng_dr(d, base_path) for d in drives if chng_dr(d, base_path).exists()
-        ]
-        if len(paths) == 1:
-            base_path = paths[0]
-        elif len(paths) > 1:
-            if any([Path.cwd().anchor == p.anchor for p in paths]):
-                paths = [p for p in paths if Path.cwd().anchor == p.anchor]
-            paths.sort(key=lambda p: len(p.parts))
-            base_path = paths[0]
-        else:
-            base_path = Path.cwd()
-
-    # if there may be overlap, shrink base path until there isn't overlap
-    if len(dir_in) >= 1 and Path(*dir_in).parts[0] in base_path.parts:
-        for b in base_path.parents:
-            if dir_in[0] not in b.parts:
-                base_path = b
-                break
-
-    # Combine the base path and begin checks
-    dir_path = base_path / Path(*dir_in)
-
-    if dir_path.exists():
-        return dir_path
-    else:
-        paths = [chng_dr(d, dir_path) for d in drives if chng_dr(d, dir_path).exists()]
-        for pth in paths:
-            if pth.exists():
-                return pth
-
-    # Basic attempts failed, try a comparison
-    caller = Path(sys.argv[0]).resolve()
-
-    # abandon base path and search in other ways
-    bases = [Path.cwd()]
-    if Path.cwd() != Path.home():
-        bases.append(Path.home())
-    bases = [chng_dr(d, p) for p in bases for d in drives if chng_dr(d, p).exists()]
-    bases = bases + list(caller.parents[: -len(Path.cwd().parts)])
-
-    bases.sort(reverse=True, key=lambda p: len(p.parts))
-
-    bases.insert(0, base_path) if base_path not in bases else None
-    [
-        bases.insert(1, chng_dr(d, base_path))
-        for d in drives
-        if chng_dr(d, base_path).exists() and chng_dr(d, base_path) not in bases
-    ]
-
-    for b in bases:
-        paths = list(b.glob("**/" + str(Path(*dir_in))))
-        if len(paths) == 1:
-            return paths[0]
-        elif len(paths) > 1:
-            return paths[0]
-
-    return dir_path
+    return find_path(*dir_in, as_list=as_list, **kwargs)
 
 
 def f_find(path, search=False, res_type="path", re_filter=None):
-    path = Path(path)
+    """
+    Depreciated. Use find_files instead.
+    """
+    if res_type == "all":
+        res_type = ""
     if search:
-        res = f_find(path.parent)
+        res = find_files(path.parent)
         return [r for r in res if r.parent == path.parent and r.stem == path.stem][0]
-
-    filesurvey = []
-    for row in os.walk(Path(path)):  # Walks through current path
-        for filename in row[
-            2
-        ]:  # row[2] is the file name re.search(r"(.h5|.hdf5)$", str(file))
-            full_path: Path = Path(row[0]) / Path(filename)  # row[0]
-            if re_filter is None or re.search(re_filter, full_path.name):
-                # if re_filter is None or re_filter in full_path.name:
-                filesurvey.append(
-                    dict(
-                        path=full_path,
-                        file=filename,
-                        date=full_path.stat().st_mtime,
-                        size=full_path.stat().st_size,
-                    )
-                )
-
-    if res_type == "all" or filesurvey == []:
-        return filesurvey
-    else:
-        try:
-            return [f[res_type] for f in filesurvey]
-        except KeyError:
-            return filesurvey
+    return find_files(path, attr=res_type, patterns=re_filter)
 
 
 def pathlib_mk(dir_path):
@@ -342,7 +220,9 @@ def parse_path_str(arg):
     """
     if isinstance(arg, (str, Path)):
         return list(filter(None, re.split(r"[\\/]+", str(repr(str(arg))[1:-1]))))
-    elif isinstance(arg, (list, np.ndarray)):
+    elif isinstance(arg, (list, np.ndarray, tuple)):
+        if len(dir_in) == 1 and isinstance(dir_in[0], (list, np.ndarray, tuple)):
+            dir_in = list(dir_in[0])
         return list(filter(None, arg))
     return arg
 
@@ -792,7 +672,7 @@ def find_files(
     if yield_shortest_match:
         filesurvey.sort(key=lambda x: x.inode())
 
-    if filesurvey == []:
+    if filesurvey == [] or attr == "":
         return filesurvey
     if hasattr(filesurvey[0], attr):
         if attr.lower() == "path":
