@@ -111,10 +111,10 @@ def manage_research_tools(source=None, base=None, ignore="archive", **kwargs):
 
 
 if __name__ == "__main__":
-    from research_tools.functions import p_find, f_find
+    from research_tools.functions import find_path, find_files
 
     target = "research_tools"
-    files = f_find(p_find(target, base=Path.cwd()), re_filter=r"[^_][.]py$")
+    files = find_files(find_path(target, base=Path.cwd()), patterns=r"[^_][.]py$")
     ignores = [
         "unit_conversion",
         "chemistry",
@@ -124,7 +124,7 @@ if __name__ == "__main__":
         "init_util",
         ]
 
-    # print_init(target, p_find(target, base=Path.cwd().parent), ignore=ignores)
+    # print_init(target, find_path(target, base=Path.cwd().parent), ignore=ignores)
 
 
     manage_research_tools(ignore=["archive", "utils", ".obsidian", "Obsidian Code"])

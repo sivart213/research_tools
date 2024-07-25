@@ -199,9 +199,12 @@ from .functions.plotters import (
 
 from .functions.system_utilities import (
     f_find,
+	find_files,
+	find_path,
     get_config,
     load,
     load_hdf,
+	my_filter,
     p_find,
     pathify,
     pathlib_mk,
@@ -388,9 +391,12 @@ __all__ = [
     "scatter",
 
     "f_find",
+	"find_files",
+	"find_path",
     "get_config",
     "load",
     "load_hdf",
+	"my_filter",
     "p_find",
     "pathify",
     "pathlib_mk",
