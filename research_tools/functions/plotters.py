@@ -20,7 +20,7 @@ from pathlib import Path
 from matplotlib import ticker
 from matplotlib.widgets import Slider, Button
 
-from .system_utilities import slugify, p_find
+from .system_utilities import slugify, find_path
 from .data_treatment import sig_figs_ceil, sci_note
 
 warnings.simplefilter("ignore", np.RankWarning)
@@ -29,10 +29,10 @@ warnings.filterwarnings("ignore")
 
 # %% Std Package wrappers
 if "kindlmann" not in mpl.colormaps() or "kindlmann_r" not in mpl.colormaps():
-    # TODO Convert to p_find and move doc
+    # TODO Convert to find_path and move doc
     Path()
     csv = pd.read_csv(
-        p_find(
+        find_path(
             "research_tools",
             "functions",
             "kindlmann-tables",

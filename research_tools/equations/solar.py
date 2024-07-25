@@ -617,7 +617,7 @@ def phos_solubility(T):
 
     # # modules(Pedro)
     # def read_cell_info(selected, path=None, file=None):
-    #     # TODO Rework with p_find
+    #     # TODO Rework with find_path
     #     if path is None:
     #         path = os.sep.join(("work", "Data"))
     #     package_path = pathify(path)

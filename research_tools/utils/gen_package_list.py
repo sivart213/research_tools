@@ -7,7 +7,7 @@ Created on Thu Dec 14 14:01:42 2023
 
 import ast
 from pathlib import Path
-from research_tools.functions import p_find, f_find
+from research_tools.functions import find_path, find_files
 
 import subprocess
 import pandas as pd
@@ -157,9 +157,9 @@ def gen_env_list(files, env_nm = "env", exclude=None, out_path=None, version=Fal
 target = ["research_tools"]
 # target = ["impedance_analysis", "ion_migration", "iv_analysis"]
 
-# files = f_find(p_find(target, base=Path.cwd()), re_filter=r"[^_][.]py$")
+# files = find_files(find_path(target, base=Path.cwd()), patterns=r"[^_][.]py$")
 files = [
-    f_find(p_find(t, base=Path.cwd()), re_filter=r"[^_][.]py$") for t in target
+    find_files(find_path(t, base=Path.cwd()), patterns=r"[^_][.]py$") for t in target
 ]
 files = [
     item for row in files for item in row if "archive" not in str(item).lower()
