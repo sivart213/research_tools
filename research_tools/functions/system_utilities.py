@@ -6,23 +6,25 @@ Created on Wed Apr 11 17:05:01 2018.
 
 General function file
 """
-import re
-import os
-import sys
-import h5py
-import dill
-import difflib
+# Standard library imports
+import configparser
 import ctypes
+import difflib
 import itertools
+import os
+import re
+import sys
+import unicodedata
+from datetime import datetime as dt
+from pathlib import Path
+
+# Third-party imports
+import dill
+import h5py
 import numpy as np
 import pandas as pd
-import unicodedata
-import configparser
 
-from pathlib import Path
-from datetime import datetime as dt
-from inspect import getmembers
-
+# Local application imports
 from .data_treatment import (
     dict_df,
     dict_flat,
@@ -101,7 +103,7 @@ def pathify(*dir_in, target=None):
         approx_top = []
         approx_sub = []
         exact = False
-        for dirpaths, dirnames, files in os.walk(os.path.abspath(root_dir)):
+        for dirpaths, dirnames, _ in os.walk(os.path.abspath(root_dir)):
             exact_dir = np.array(dirnames)[[sub_dir == item for item in dirnames]]
             approx_dir = np.array(dirnames)[
                 [sub_dir.lower() in item.lower() for item in dirnames]
@@ -221,8 +223,8 @@ def parse_path_str(arg):
     if isinstance(arg, (str, Path)):
         return list(filter(None, re.split(r"[\\/]+", str(repr(str(arg))[1:-1]))))
     elif isinstance(arg, (list, np.ndarray, tuple)):
-        if len(dir_in) == 1 and isinstance(dir_in[0], (list, np.ndarray, tuple)):
-            dir_in = list(dir_in[0])
+        if len(arg) == 1 and isinstance(arg[0], (list, np.ndarray, tuple)):
+            arg = list(arg[0])
         return list(filter(None, arg))
     return arg
 
@@ -708,13 +710,17 @@ def slugify(value, allow_unicode=False, sep="-"):
     return re.sub(r"[-\s]+", sep, value).strip("-_")
 
 
-def save(data, path=None, name=None, ftype="xls", attrs=None, **kwargs):
+def save(data, path=None, name=None, ftype="xls", **kwargs):
     """Save data into excel file."""
     if isinstance(path, Path):
         path = str(path)
     if path is None:
+        #TODO convert to home path
         path = find_path(
-            "Data", "Analysis", "Auto", base=find_path(r"ASU Dropbox", base="drive")) / dt.now().strftime("%Y%m%d") #TODO convert to home
+            "Data", "Analysis", "Auto", base=find_path(r"ASU Dropbox", base="drive")
+        ) / dt.now().strftime(
+            "%Y%m%d"
+        )
     if name is None:
         name = "data_" + dt.now().strftime("%H_%M")
     if not os.path.exists(path):
@@ -738,12 +744,12 @@ def save(data, path=None, name=None, ftype="xls", attrs=None, **kwargs):
 
     if isinstance(data, (pd.DataFrame, pd.Series)) and "xls" in ftype.lower():
         data.to_excel(
-            os.sep.join((path, f"{slugify(name)}.xlsx")),
+            path / f"{slugify(name)}.xlsx",
             merge_cells=kwargs.pop("merge_cells", False),
             **kwargs,
         )
     elif isinstance(data, (dict)) and "xls" in ftype.lower():
-        with pd.ExcelWriter(os.sep.join((path, f"{slugify(name)}.xlsx"))) as writer:
+        with pd.ExcelWriter(path / f"{slugify(name)}.xlsx") as writer:
             for key, df in data.items():
                 df.to_excel(
                     writer,
@@ -753,26 +759,31 @@ def save(data, path=None, name=None, ftype="xls", attrs=None, **kwargs):
                 )
     elif isinstance(data, (pd.DataFrame, pd.Series)):
         data.to_csv(
-            os.sep.join((path, f"{slugify(name)}.{ftype}")),
+            path / f"{slugify(name)}.{ftype}",
             index=kwargs.pop("index", False),
             **kwargs,
         )
     elif isinstance(data, (dict)):
         for key, df in data.items():
             df.to_csv(
-                os.sep.join((path, f"{slugify(name)}_{key}.{ftype}")),
+                path / f"{slugify(name)}_{key}.{ftype}",
                 index=kwargs.pop("index", False),
                 **kwargs,
             )
 
 
-def load(file, path=None, pdkwargs={}, hdfkwargs={}, **kwargs):
+def load_file(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
     """
     Loads data from excel or hdf5
     kwargs:
         flat_df
         target
     """
+    if pdkwargs is None:
+        pdkwargs = {}
+    if hdfkwargs is None:
+        hdfkwargs = {}
+
     file = Path(file)
     if isinstance(path, list):
         path = find_path(path)
@@ -808,8 +819,14 @@ def load(file, path=None, pdkwargs={}, hdfkwargs={}, **kwargs):
             file,
             patterns=kwargs.get("file_filter", kwargs.get("patterns", "")),
         )
-        return [load(f, None, pdkwargs, hdfkwargs, **kwargs) for f in filelist]
+        return [load_file(f, None, pdkwargs, hdfkwargs, **kwargs) for f in filelist]
     return data, attrs
+
+def load(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
+    """
+    Depreciated. Use load_file instead.
+    """
+    return load_file(file, path, pdkwargs, hdfkwargs, **kwargs)
 
 
 def load_hdf(file, path=None, target="/", key_sep=False, **kwargs):
@@ -818,7 +835,7 @@ def load_hdf(file, path=None, target="/", key_sep=False, **kwargs):
     if isinstance(path, Path):
         path = str(path)
     if path is not None:
-        file = os.sep.join((path, file))
+        file = path / file
 
     def get_ds_dictionaries(name, node):
         if target in name:
@@ -837,7 +854,7 @@ def load_hdf(file, path=None, target="/", key_sep=False, **kwargs):
     return ds_dict, attr_dict
 
 
-def get_config(file, sections=["base"], **kwargs):
+def get_config(file, sections=None, **kwargs):
     """
     Get the necessary information from a configuration .ini file.
 
@@ -861,6 +878,8 @@ def get_config(file, sections=["base"], **kwargs):
     config_file : dict
         Returns a dict containing all settings imported from the .ini file
     """
+    if sections is None:
+        sections = ["base"]
     if file is None:
         return kwargs
     cp = configparser.ConfigParser()
@@ -914,7 +933,7 @@ def get_config(file, sections=["base"], **kwargs):
 class PickleJar:
     """Calculate. generic discription."""
 
-    def __init__(self, data=None, folder="Auto", path=None, history=False, **kwargs):
+    def __init__(self, data=None, folder="Auto", path=None, history=False):
         """Calculate. generic discription."""
         self.history = history
         self.folder = folder
@@ -934,7 +953,15 @@ class PickleJar:
     def path(self):
         """Return sum of squared errors (pred vs actual)."""
         if not hasattr(self, "_path"):
-            self._path = find_path("Data", "Analysis", "Pickles", base=find_path(r"ASU Dropbox", base="drive"))/ self.folder
+            self._path = (
+                find_path(
+                    "Data",
+                    "Analysis",
+                    "Pickles",
+                    base=find_path(r"ASU Dropbox", base="drive"),
+                )
+                / self.folder
+            )
             if not os.path.exists(self._path):
                 os.makedirs(self._path)
         return self._path
@@ -952,7 +979,7 @@ class PickleJar:
         if self.history and len(self.database) != 0:
             self.shift(name)
 
-        with open(os.sep.join((self.path, name)), "wb") as dill_file:
+        with open(self.path / name, "wb") as dill_file:
             dill.dump(data, dill_file)
 
     def __getitem__(self, name):
@@ -966,7 +993,7 @@ class PickleJar:
 
         if not self.database.isin([name]).any():
             name = difflib.get_close_matches(name, self.database)[0]
-        with open(os.sep.join((self.path, slugify(name))), "rb") as dill_file:
+        with open(self.path / slugify(name), "rb") as dill_file:
             data = dill.load(dill_file)
         return data
 
@@ -1039,6 +1066,5 @@ class PickleJar:
             res = res[res.str.contains(val)]
         return res
 
-
-if __name__ == "__main__":
-    from inspect import getmembers
+# if __name__ == "__main__":
+#     # Testing section

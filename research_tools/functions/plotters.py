@@ -163,7 +163,7 @@ def map_plt(
             save = str(save)
         if not os.path.exists(save):
             os.makedirs(save)
-        plt.savefig(os.sep.join((save, f"{slugify(name)}.png")))
+        plt.savefig(save / f"{slugify(name)}.png")
 
     if not show:
         plt.close()
@@ -273,7 +273,7 @@ def scatter(
             save = str(save)
         if not os.path.exists(save):
             os.makedirs(save)
-        plt.savefig(os.sep.join((save, f"{slugify(name)}.png")))
+        plt.savefig(save / f"{slugify(name)}.png")
 
     if not show:
         plt.close()
@@ -749,7 +749,7 @@ def lineplot_slider(
             save = str(save)
         if not os.path.exists(save):
             os.makedirs(save)
-        plt.savefig(os.sep.join((save, f"{slugify(name)}.png")))
+        plt.savefig(save / f"{slugify(name)}.png")
 
     if return_fig and data2 is not None:
         return fig, g1, g2, s_z, button
