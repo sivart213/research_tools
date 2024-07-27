@@ -34,7 +34,12 @@ from .data_treatment import (
 
 # warnings.simplefilter("ignore", np.RankWarning)
 # warnings.filterwarnings("ignore")
+"""
+TODO: Add config file and class.  Make compatable with being created upon install but not changed if updated
+config file -> ini or toml file with default values, particularly for paths
 
+class -> interfaces with config file. Would only need to be called to access or update config.  Would not need to be in init.
+"""
 
 # %% Path resolving functions
 def pathify(*dir_in, target=None):
@@ -712,8 +717,7 @@ def slugify(value, allow_unicode=False, sep="-"):
 
 def save(data, path=None, name=None, ftype="xls", **kwargs):
     """Save data into excel file."""
-    if isinstance(path, Path):
-        path = str(path)
+    path = Path(path)
     if path is None:
         #TODO convert to home path
         path = find_path(
@@ -938,7 +942,7 @@ class PickleJar:
         self.history = history
         self.folder = folder
         if path is not None:
-            self.path = path
+            self.path = Path(path)
         if data is not None:
             self.append(data)
 
