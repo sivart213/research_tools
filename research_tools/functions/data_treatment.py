@@ -179,7 +179,7 @@ def function_to_expr(func, **kwargs):
         ):
             varargs = varargs[0]
         if isinstance(varargs, int):
-            sign = int(-varargs / abs(varargs))
+            sign = int(-1*varargs / abs(varargs))
             varargs = [
                 sp.symbols(f"C_{a+sign}", real=True)
                 for a in range(varargs, 0, sign)

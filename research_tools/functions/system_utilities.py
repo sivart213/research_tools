@@ -41,6 +41,7 @@ config file -> ini or toml file with default values, particularly for paths
 class -> interfaces with config file. Would only need to be called to access or update config.  Would not need to be in init.
 """
 
+
 # %% Path resolving functions
 def pathify(*dir_in, target=None):
     """
@@ -516,19 +517,34 @@ def find_path(*dir_in, base=None, as_list=False, by_re=True, by_glob=False, **kw
                     break
         return path1
 
-    drives = []
+    drives = find_drives(exclude_nonlocal=True, exclude_hidden=True, **kwargs)
+    for d in drives:
+        if dir_in[0] in str(d):
+            dir_in[0] = str(d)
+            break
+    
+    dir_in_parents = list(Path(*dir_in).parents)
+    n = 1
+    while dir_in_parents[-n].exists() and n < len(dir_in) - 1:
+        n += 1
 
-    # Get base path, if string it should either be the path, home, or cwd
-    if isinstance(base, str):
+    if dir_in[0] in drives and n > 1:
+        # if the first directory is a drive and there are multiple directories, use the n-th parent as it's likely more accurate as a base
+        base = dir_in_parents[-n]
+    elif isinstance(base, str):
+        # if base is a string, it is likely a keyword signaling a particular base
         if base.lower() in ["local", "caller", "argv", "sys.argv"]:
+            # each of these options are assuming the base is the directory of the calling script
             base = Path(sys.argv[0]).resolve().parent
         elif "drive" in base.lower():
-            drives = find_drives(exclude_nonlocal=True, exclude_hidden=True, **kwargs)
+            # The base is a drive, check if dir in is one level down
             base_path = [p for d in drives for p in d.glob("*/" + str(Path(*dir_in)))]
+            # Otherwise, check if dir in is two levels down
             if base_path == []:
                 base_path = [
                     p for d in drives for p in d.glob("*/*/" + str(Path(*dir_in)))
                 ]
+            
             if base_path == []:
                 base = None
             else:
@@ -536,8 +552,10 @@ def find_path(*dir_in, base=None, as_list=False, by_re=True, by_glob=False, **kw
                 base = base_path[0]
 
         else:
+            # it's possible that the base is an attribute of the Path class
             base = getattr(Path, base)() if hasattr(Path, base) else Path(base)
     if base is None or not isinstance(base, Path) or not base.exists():
+        # if base has not been resolved, use the Documents folder of the home directory
         base = Path.home() / "Documents"
 
     # if there may be overlap, shrink base path until there isn't overlap
@@ -657,7 +675,13 @@ def find_files(
         patterns = [patterns]
 
     if patterns:
-        compiled_patterns = [re.compile(pattern) for pattern in patterns]
+        compiled_patterns = []
+        for pattern in patterns:
+            try:
+                compiled_patterns.append(re.compile(pattern))
+            except re.error:
+                continue
+        # compiled_patterns = [re.compile(pattern) for pattern in patterns]
         f_filter = lambda x: all(
             pattern.search(str(x)) for pattern in compiled_patterns
         )
@@ -719,12 +743,10 @@ def save(data, path=None, name=None, ftype="xls", **kwargs):
     """Save data into excel file."""
     path = Path(path)
     if path is None:
-        #TODO convert to home path
+        # TODO convert to home path
         path = find_path(
             "Data", "Analysis", "Auto", base=find_path(r"ASU Dropbox", base="drive")
-        ) / dt.now().strftime(
-            "%Y%m%d"
-        )
+        ) / dt.now().strftime("%Y%m%d")
     if name is None:
         name = "data_" + dt.now().strftime("%H_%M")
     if not os.path.exists(path):
@@ -826,6 +848,7 @@ def load_file(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
         return [load_file(f, None, pdkwargs, hdfkwargs, **kwargs) for f in filelist]
     return data, attrs
 
+
 def load(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
     """
     Depreciated. Use load_file instead.
@@ -834,6 +857,29 @@ def load(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
 
 
 def load_hdf(file, path=None, target="/", key_sep=False, **kwargs):
+    """
+    Loads data from an HDF5 file and returns it as dictionaries.
+
+    This function reads an HDF5 file and extracts datasets and attributes into
+    dictionaries. It allows for optional path resolution and filtering based on
+    a target string.
+
+    Parameters:
+    file (str or Path): The name or path of the HDF5 file to be loaded.
+    path (str, Path, or list, optional): The directory path where the file is located.
+        If a list is provided, the function will search for the file in the specified paths.
+        If None, the current working directory is used. Default is None.
+    target (str, optional): A string to filter the datasets and attributes to be extracted.
+        Only items containing the target string in their name will be included. Default is "/".
+    key_sep (bool, optional): If True, the keys in the returned dictionaries will be separated into nested dictionaries
+        based on the '/' character. Default is False.
+    **kwargs: Additional keyword arguments to be passed to the h5py.File visititems method.
+
+    Returns:
+    tuple: A tuple containing two dictionaries:
+           - ds_dict: A dictionary where keys are dataset names and values are the dataset contents.
+           - attr_dict: A dictionary where keys are attribute names and values are the attribute contents.
+    """
     if isinstance(path, list):
         path = find_path(path)
     if isinstance(path, Path):
@@ -844,7 +890,10 @@ def load_hdf(file, path=None, target="/", key_sep=False, **kwargs):
     def get_ds_dictionaries(name, node):
         if target in name:
             if isinstance(node, h5py.Dataset):
-                ds_dict[node.name] = np.array(node[()])
+                if "void" in node.dtype.name:
+                    ds_dict[node.name] = {k: np.array(node.fields(k)).item() for k in node.dtype.names}
+                else:
+                    ds_dict[node.name] = np.array(node[()])
             if any(node.attrs):
                 for key, val in node.attrs.items():
                     attr_dict[node.name + "/" + key] = val
@@ -1070,5 +1119,7 @@ class PickleJar:
             res = res[res.str.contains(val)]
         return res
 
-# if __name__ == "__main__":
-#     # Testing section
+
+if __name__ == "__main__":
+    # Testing section
+    res = find_path(r"C:\Users\j2cle\Documents\Python\research_tools\research_tools\functions\added_cmaps\kindlmann")

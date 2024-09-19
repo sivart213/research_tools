@@ -8,7 +8,7 @@ General function file
 """
 import os
 import re
-import warnings
+# import warnings
 import numpy as np
 import pandas as pd
 import matplotlib as mpl
@@ -20,50 +20,140 @@ from pathlib import Path
 from matplotlib import ticker
 from matplotlib.widgets import Slider, Button
 
-from .system_utilities import slugify, find_path
+from .system_utilities import slugify, find_path, find_files
 from .data_treatment import sig_figs_ceil, sci_note
 
-warnings.simplefilter("ignore", np.RankWarning)
-warnings.filterwarnings("ignore")
+# Temporarily un-suppressing warnings to eval where they were coming from
+# warnings.simplefilter("ignore", np.RankWarning)
+# warnings.filterwarnings("ignore")
 
 
 # %% Std Package wrappers
-if "kindlmann" not in mpl.colormaps() or "kindlmann_r" not in mpl.colormaps():
-    # TODO Convert to find_path and move doc
-    Path()
-    csv = pd.read_csv(
-        find_path(
+
+
+def add_colormap(Colormap=None, normal_func=None):
+    """
+    Adds a colormap to the matplotlib colormap registry.
+
+    Parameters:
+    Colormap (dict, str, or None): A dictionary where keys are colormap names and values are lists of colors.
+                             If None or not a dictionary, the colormap data will be generated using 
+                             `get_colormap_data` with the provided `normal_func`.  If a string is passed, it is assumed to be the name of a cmap in the local cmap folder or path to a cmap csv. 
+    normal_func (callable or None): A normalization function to be used when generating colormap data.
+
+    Returns:
+    None
+    """
+    if not isinstance(Colormap, dict):
+        Colormap = get_colormap_data(Colormap, normal_func)
+
+    for k, v in Colormap.items():
+        if v is None:
+            continue
+        cmap = mpl.colors.LinearSegmentedColormap.from_list(k, v)
+        n1 = k
+        n2 = f"{k}_r"
+        c1 = cmap
+        c2 = cmap.reversed()
+        if k[-2:] == "_r":
+            n1 = k[:-2]
+            n2 = k
+            c1 = cmap.reversed()
+            c2 = cmap
+
+    # try:
+        if n1 not in list(mpl.colormaps):
+            mpl.colormaps.register(
+                c1,
+                name=n1,
+            )
+        if n2 not in list(mpl.colormaps):
+            mpl.colormaps.register(
+                c2,
+                name=n2,
+            )
+    # except AttributeError:
+    #     if "kindlmann" not in mpl.colormaps():
+    #         mpl.cm.register_cmap(
+    #             "kindlmann",
+    #             mpl.colors.LinearSegmentedColormap.from_list("kindlmann", col_arr),
+    #         )
+    #     if "kindlmann_r" not in mpl.colormaps():
+    #         mpl.cm.register_cmap(
+    #             "kindlmann_r",
+    #             mpl.colors.LinearSegmentedColormap.from_list(
+    #                 "kindlmann", col_arr
+    #             ).reversed(),
+    #         )
+
+
+def get_colormap_data(Colormap=None, normal_func=None):
+    """
+    Generates colormap data for use in visualizations.
+
+    Parameters:
+    Colormap (str or None): If None, available colormaps in local folder will be imported. 
+                            If a string is passed, it is assumed to be the name of a cmap in the local cmap folder or path to a cmap csv. 
+    normal_func (callable or None): A normalization function to be applied to the colormap data.
+                                    If None, the default matplotlib.colors.Normalize function will be used.
+
+    Returns:
+    dict: A dictionary where keys are colormap names and values are lists of colors.
+    """
+    if normal_func is None:
+        normal_func = mpl.colors.Normalize
+    if Colormap is None:
+        Colormap = find_path(
             "research_tools",
             "functions",
-            "kindlmann-tables",
-            "kindlmann-table-float-1024.csv",
+            "added_cmaps",
             base="cwd",
         )
-    )
-    col_arr = csv.iloc[:, 1:].to_numpy()
+    if not isinstance(Colormap, (str, Path)):
+        raise TypeError("Colormap must be a string or a path")
 
-    if "kindlmann" not in mpl.colormaps():
-        mpl.cm.register_cmap(
-            "kindlmann",
-            mpl.colors.LinearSegmentedColormap.from_list("kindlmann", col_arr),
+    if not Path(Colormap).exists():
+        base = find_path(
+            "research_tools",
+            "functions",
+            "added_cmaps",
+            base="cwd",
         )
-    if "kindlmann_r" not in mpl.colormaps():
-        mpl.cm.register_cmap(
-            "kindlmann_r",
-            mpl.colors.LinearSegmentedColormap.from_list(
-                "kindlmann", col_arr
-            ).reversed(),
-        )
+        if (base/Colormap).exists():
+            Colormap = base/Colormap
+        else:
+            files = {b.stem: b for b in base.glob("*")}
+            if str(Colormap) in files.keys():
+                Colormap = files[str(Colormap)]
+            else:
+                return {str(Colormap): None}
+                
+    if Path(Colormap).is_file():
+        #TODO: Add hdx support
+        csv = pd.read_csv(Path(Colormap))
+        idxs = np.where(csv.columns.str.contains("(?i)rgb"))[0]
+        idx = idxs.min() if len(idxs) >= 1 else 0
+        data = normal_func()(csv.iloc[:, idx:idx+4])
+        return {Path(Colormap).stem: data}
+    
+    elif Path(Colormap).is_dir():
+        cmaps = find_files(Colormap)
+        return {cmap.stem: get_colormap_data(cmap)[cmap.stem] for cmap in cmaps}
+    return {str(Colormap): None}
+
 
 def get_style(styl_str):
     if styl_str in style.available:
         style.use(styl_str)
     else:
-        has_any = [sum([st in av for st in re.split("[-_]", styl_str)]) for av in style.available]
+        has_any = [
+            sum([st in av for st in re.split("[-_]", styl_str)])
+            for av in style.available
+        ]
         res = np.array(style.available)[[n == max(has_any) for n in has_any]]
         style.use(res[0]) if len(res) >= 1 else None
     return
-        
+
 
 def map_plt(
     x,
@@ -86,7 +176,30 @@ def map_plt(
     **kwargs,
 ):
     """
-    Create a map plot using contourf.
+    Create a map plot using contourf of matplotlib.
+
+    Parameters:
+    x (array-like): Data for the x-axis.
+    y (array-like): Data for the y-axis.
+    z (array-like): Data for the z-axis (contour levels).
+    xscale (str, optional): Scale for the x-axis. Default is "linear".
+    yscale (str, optional): Scale for the y-axis. Default is "linear".
+    zscale (str, optional): Scale for the z-axis. Default is "log".
+    xlimit (list, optional): Limits for the x-axis. Default is [0, 0], which auto-scales based on data.
+    ylimit (list, optional): Limits for the y-axis. Default is [0, 0], which auto-scales based on data.
+    zlimit (list, optional): Limits for the z-axis. Default is [0, 0], which auto-scales based on data.
+    levels (int, optional): Number of contour levels. Default is 50.
+    name (str, optional): Title of the plot. Default is an empty string.
+    xname (str, optional): Label for the x-axis. Default is "X".
+    yname (str, optional): Label for the y-axis. Default is "Y".
+    zname (str, optional): Label for the z-axis. Default is "Z".
+    ztick (int, optional): Interval for z-axis ticks. Default is 10.
+    save (str or None, optional): File path to save the plot. Default is None.
+    show (bool, optional): Whether to display the plot. Default is True.
+    **kwargs: Additional keyword arguments for the plotting function.
+
+    Returns:
+    None
     """
     get_style("seaborn-colorblind")
 
@@ -192,7 +305,40 @@ def scatter(
     grid=False,
     **kwargs,
 ):
-    """Calculate. generic discription."""
+    """
+    Create a scatter plot using seaborn.
+
+    Parameters:
+    data (pd.DataFrame or array-like): Input data for the plot.
+    x (str or array-like): Data for the x-axis.
+    y (str or array-like, optional): Data for the y-axis. Default is None, which uses the first column of data.
+    xscale (str, optional): Scale for the x-axis. Default is "linear".
+    yscale (str, optional): Scale for the y-axis. Default is "linear".
+    xlimit (list or None, optional): Limits for the x-axis. Default is None, which auto-scales based on data.
+    ylimit (list or None, optional): Limits for the y-axis. Default is None, which auto-scales based on data.
+    title (str, optional): Title of the plot. Default is None.
+    xlabel (str, optional): Label for the x-axis. Default is None.
+    ylabel (str, optional): Label for the y-axis. Default is None.
+    yname (str, optional): Name for the y-axis. Default is None.
+    zname (str, optional): Name for the z-axis. Default is None.
+    hline (float or None, optional): Position of a horizontal line to add to the plot. Default is None.
+    colorbar (bool, optional): Whether to include a colorbar. Default is False.
+    save (str or None, optional): File path to save the plot. Default is None.
+    show (bool, optional): Whether to display the plot. Default is True.
+    fig (matplotlib.figure.Figure or None, optional): Figure object to use for the plot. Default is None.
+    ax (matplotlib.axes.Axes or None, optional): Axes object to use for the plot. Default is None.
+    grid (bool, optional): Whether to include a grid in the plot. Default is False.
+    **kwargs: Additional keyword arguments for the plotting function.
+
+    Returns:
+    None
+    """
+    try:
+        import seaborn as sns
+        seaborn_installed = True
+    except ImportError:
+        seaborn_installed = False
+    
     get_style("seaborn-colorblind")
 
     sns.set_theme(context="talk", style="dark")
@@ -233,10 +379,12 @@ def scatter(
         if hline is not None and (yscale != "log" or hline > 0):
             ax.axhline(hline, color="k", linestyle=":")
 
+    # Labels and their fonts
     g.set_xlabel(xname, fontname="serif", fontsize=18, fontweight="bold")
     g.set_ylabel(yname, fontname="serif", fontsize=18, fontweight="bold")
     ax.set_title(name, fontname="serif", fontsize=20, fontweight="bold")
 
+    # Adjust the font of the ticks
     for tick in ax.get_xticklabels():
         tick.set_fontname("serif")
         tick.set_fontweight("bold")
@@ -249,9 +397,7 @@ def scatter(
     if colorbar:
         if zname is None:
             zname = kwargs["hue"]
-        norm = plt.Normalize(
-            data[kwargs["hue"]].min(), data[kwargs["hue"]].max()
-        )
+        norm = plt.Normalize(data[kwargs["hue"]].min(), data[kwargs["hue"]].max())
         sm = plt.cm.ScalarMappable(cmap=kwargs["palette"], norm=norm)
         sm.set_array([])
 
@@ -290,7 +436,30 @@ def nyquist(
     pad=1.25,
     return_fig=False,
 ):
-    """Calculate. generic discription."""
+    """
+    Create a Nyquist plot using Seaborn.
+
+    Parameters:
+    data (pd.DataFrame or array-like): Input data for the plot.
+    x (str or array-like, optional): Data for the x-axis (Real part). Default is "Re".
+    y (str or array-like, optional): Data for the y-axis (Imaginary part). Default is "Im".
+    xscale (str, optional): Scale for the x-axis. Default is "linear".
+    yscale (str, optional): Scale for the y-axis. Default is "linear".
+    xlimit (list or None, optional): Limits for the x-axis. Default is None, which auto-scales based on data.
+    ylimit (list or None, optional): Limits for the y-axis. Default is None, which auto-scales based on data.
+    title (str, optional): Title of the plot. Default is "Nyquist Plot".
+    xlabel (str, optional): Label for the x-axis. Default is "Real Part".
+    ylabel (str, optional): Label for the y-axis. Default is "Imaginary Part".
+    save (str or None, optional): File path to save the plot. Default is None.
+    show (bool, optional): Whether to display the plot. Default is True.
+    fig (matplotlib.figure.Figure or None, optional): Figure object to use for the plot. Default is None.
+    ax (matplotlib.axes.Axes or None, optional): Axes object to use for the plot. Default is None.
+    grid (bool, optional): Whether to include a grid in the plot. Default is True.
+    **kwargs: Additional keyword arguments for the plotting function.
+
+    Returns:
+    None
+    """
     get_style("seaborn-colorblind")
 
     data = data.copy()
@@ -307,7 +476,7 @@ def nyquist(
         y="inv_imag",
         data=data,
         hue="freq",
-        palette="kindlmann",
+        palette="plasma",
         hue_norm=plt.matplotlib.colors.LogNorm(),
         legend=False,
         edgecolor="none",
@@ -316,30 +485,18 @@ def nyquist(
     if fit is not None:
         ax.plot(fit["real"], fit["inv_imag"])
         if band is not None:
-            ax.fill_between(
-                band["real"], band[bmin], band[bmax], color="r", alpha=0.5
-            )
+            ax.fill_between(band["real"], band[bmin], band[bmax], color="r", alpha=0.5)
 
-    norms = plt.matplotlib.colors.LogNorm(
-        data["freq"].min(), data["freq"].max()
-    )
-    sm = plt.cm.ScalarMappable(cmap="kindlmann", norm=norms)
+    norms = plt.matplotlib.colors.LogNorm(data["freq"].min(), data["freq"].max())
+    sm = plt.cm.ScalarMappable(cmap="plasma", norm=norms)
     cbar = ax.figure.colorbar(sm)
     cbar.set_label("Freq", fontname="Arial", fontsize=18, fontweight="bold")
 
-    ax.set_xlabel(
-        "Z' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold"
-    )
-    ax.set_ylabel(
-        "-Z'' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold"
-    )
+    ax.set_xlabel("Z' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold")
+    ax.set_ylabel("-Z'' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold")
     ax.set_aspect("equal", adjustable="box", anchor="SW", share=True)
-    ax.set_xlim(
-        0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2)
-    )
-    ax.set_ylim(
-        0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2)
-    )
+    ax.set_xlim(0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2))
+    ax.set_ylim(0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2))
     ax.grid(True)
     ax.set_title(title, fontname="Arial", fontsize=18, fontweight="bold")
 
@@ -368,7 +525,24 @@ def bode(
     title="bode",
     return_fig=False,
 ):
-    """Calculate. generic discription."""
+    """
+    Create a Bode plot.
+
+    Parameters:
+    data (pd.DataFrame or array-like): Input data for the plot.
+    freq (array-like or None, optional): Frequency data. Default is None.
+    top (str, optional): Data to plot on the top subplot. Options are "real", "imag", "inv_imag", "mag", "phase", "inv_phase". Default is "mag".
+    bot (str, optional): Data to plot on the bottom subplot. Options are "real", "imag", "inv_imag", "mag", "phase", "inv_phase". Default is "phase".
+    fit (callable or None, optional): Function to fit the data. Default is None.
+    band (tuple or None, optional): Frequency band to highlight. Default is None.
+    bmin (str or float, optional): Minimum value for the band. Default is "min".
+    bmax (str or float, optional): Maximum value for the band. Default is "max".
+    title (str, optional): Title of the plot. Default is "bode".
+    return_fig (bool, optional): Whether to return the figure object. Default is False.
+
+    Returns:
+    matplotlib.figure.Figure or None: The figure object if return_fig is True, otherwise None.
+    """
     get_style("seaborn-colorblind")
 
     if freq is not None:
@@ -436,15 +610,9 @@ def bode(
     else:
         ax2.set(yscale="log", ylim=[data[bot].min(), data[bot].max()])
 
-    ax2.set_xlabel(
-        "Frequency Hz", fontname="Arial", fontsize=18, fontweight="bold"
-    )
-    ax1.set_ylabel(
-        labels[top], fontname="Arial", fontsize=18, fontweight="bold"
-    )
-    ax2.set_ylabel(
-        labels[bot], fontname="Arial", fontsize=18, fontweight="bold"
-    )
+    ax2.set_xlabel("Frequency Hz", fontname="Arial", fontsize=18, fontweight="bold")
+    ax1.set_ylabel(labels[top], fontname="Arial", fontsize=18, fontweight="bold")
+    ax2.set_ylabel(labels[bot], fontname="Arial", fontsize=18, fontweight="bold")
     ax1.set_title(title, fontname="Arial", fontsize=18, fontweight="bold")
     ax1.grid(True)
     ax2.grid(True)
@@ -483,7 +651,7 @@ def nyquist2(
         x=data["real"],
         y=data["inv_imag"],
         c=data["freq"],
-        cmap="kindlmann",
+        cmap="plasma",
         norm=plt.matplotlib.colors.LogNorm(),
         # legend=False,
         edgecolor="none",
@@ -492,32 +660,20 @@ def nyquist2(
     if fit is not None:
         nyln = ax.plot(fit["real"], fit["inv_imag"], "r")
         if band is not None:
-            ax.fill_between(
-                band["real"], band[bmin], band[bmax], color="r", alpha=0.5
-            )
+            ax.fill_between(band["real"], band[bmin], band[bmax], color="r", alpha=0.5)
     else:
         nyln = None
 
-    norms = plt.matplotlib.colors.LogNorm(
-        data["freq"].min(), data["freq"].max()
-    )
-    sm = plt.cm.ScalarMappable(cmap="kindlmann", norm=norms)
+    norms = plt.matplotlib.colors.LogNorm(data["freq"].min(), data["freq"].max())
+    sm = plt.cm.ScalarMappable(cmap="plasma", norm=norms)
     cbar = ax.figure.colorbar(sm)
     cbar.set_label("Freq", fontname="Arial", fontsize=18, fontweight="bold")
 
-    ax.set_xlabel(
-        "Z' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold"
-    )
-    ax.set_ylabel(
-        "-Z'' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold"
-    )
+    ax.set_xlabel("Z' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold")
+    ax.set_ylabel("-Z'' [Ohms]", fontname="Arial", fontsize=18, fontweight="bold")
     ax.set_aspect("equal", adjustable="box", anchor="SW", share=True)
-    ax.set_xlim(
-        0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2)
-    )
-    ax.set_ylim(
-        0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2)
-    )
+    ax.set_xlim(0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2))
+    ax.set_ylim(0, sig_figs_ceil(data[["real", "inv_imag"]].max().max() * pad, 2))
     ax.grid(True)
     ax.set_title(title, fontname="Arial", fontsize=18, fontweight="bold")
 
@@ -623,15 +779,9 @@ def bode2(
             ],
         )
 
-    ax2.set_xlabel(
-        "Frequency Hz", fontname="Arial", fontsize=18, fontweight="bold"
-    )
-    ax1.set_ylabel(
-        labels[top], fontname="Arial", fontsize=18, fontweight="bold"
-    )
-    ax2.set_ylabel(
-        labels[bot], fontname="Arial", fontsize=18, fontweight="bold"
-    )
+    ax2.set_xlabel("Frequency Hz", fontname="Arial", fontsize=18, fontweight="bold")
+    ax1.set_ylabel(labels[top], fontname="Arial", fontsize=18, fontweight="bold")
+    ax2.set_ylabel(labels[bot], fontname="Arial", fontsize=18, fontweight="bold")
     ax1.set_title(title, fontname="Arial", fontsize=18, fontweight="bold")
     ax1.grid(True)
     ax2.grid(True)
@@ -642,6 +792,79 @@ def bode2(
     else:
         plt.show()
 
+def nyquist_combined(
+    data,
+    x="Re",
+    y="Im",
+    xscale="linear",
+    yscale="linear",
+    xlimit=None,
+    ylimit=None,
+    title="Nyquist Plot",
+    xlabel="Real Part",
+    ylabel="Imaginary Part",
+    save=None,
+    show=True,
+    fig=None,
+    ax=None,
+    grid=True,
+    additional_param=None,  # Example of a unique parameter from nyquist2
+    **kwargs,
+):
+    """
+    Create a Nyquist plot with combined functionality, using Seaborn if available, otherwise Matplotlib.
+
+    Parameters:
+    data (pd.DataFrame or array-like): Input data for the plot.
+    x (str or array-like, optional): Data for the x-axis (Real part). Default is "Re".
+    y (str or array-like, optional): Data for the y-axis (Imaginary part). Default is "Im".
+    xscale (str, optional): Scale for the x-axis. Default is "linear".
+    yscale (str, optional): Scale for the y-axis. Default is "linear".
+    xlimit (list or None, optional): Limits for the x-axis. Default is None, which auto-scales based on data.
+    ylimit (list or None, optional): Limits for the y-axis. Default is None, which auto-scales based on data.
+    title (str, optional): Title of the plot. Default is "Nyquist Plot".
+    xlabel (str, optional): Label for the x-axis. Default is "Real Part".
+    ylabel (str, optional): Label for the y-axis. Default is "Imaginary Part".
+    save (str or None, optional): File path to save the plot. Default is None.
+    show (bool, optional): Whether to display the plot. Default is True.
+    fig (matplotlib.figure.Figure or None, optional): Figure object to use for the plot. Default is None.
+    ax (matplotlib.axes.Axes or None, optional): Axes object to use for the plot. Default is None.
+    grid (bool, optional): Whether to include a grid in the plot. Default is True.
+    additional_param (type, optional): Description of the additional parameter from nyquist2. Default is None.
+    **kwargs: Additional keyword arguments for the plotting function.
+
+    Returns:
+    None
+    """
+    try:
+        import seaborn as sns
+        seaborn_installed = True
+    except ImportError:
+        seaborn_installed = False
+
+    if fig is None or ax is None:
+        fig, ax = plt.subplots()
+
+    if seaborn_installed:
+        sns.scatterplot(x=x, y=y, data=data, ax=ax, **kwargs)
+    else:
+        ax.scatter(data[x], data[y], **kwargs)
+
+    ax.set_xscale(xscale)
+    ax.set_yscale(yscale)
+    if xlimit:
+        ax.set_xlim(xlimit)
+    if ylimit:
+        ax.set_ylim(ylimit)
+    ax.set_title(title)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    if grid:
+        ax.grid(True)
+    if save:
+        plt.savefig(save)
+    if show:
+        plt.show()
 
 def lineplot_slider(
     data,
