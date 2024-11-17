@@ -244,9 +244,11 @@ def solve_for_variable(
     """
     if callable(func):
         expr = function_to_expr(func, **kwargs)
-
     elif isinstance(func, sp.Basic):
         expr = func
+    else:
+        expr = None
+        
 
     if res_form.lower() == "expr" or not isinstance(expr, sp.Basic):
         return expr
@@ -308,9 +310,11 @@ def create_function(func, targ, var=None, cost=None, **kwargs):
 
     if callable(func):
         expr = function_to_expr(func)
-
     elif isinstance(func, sp.Basic):
         expr = func
+    else:
+        expr = None
+        
 
     args = {}
 
@@ -361,10 +365,13 @@ def extract_arguments(func, method="str", **kwargs):
     res : varied
         requested value
     """
+
     if callable(func):
         expr = function_to_expr(func)
     elif isinstance(func, sp.Basic):
         expr = func
+    else:
+        expr = None
 
     ignore = kwargs.pop("ignore", ["kwargs", "args"])
     if not isinstance(ignore, (list, tuple)):
@@ -527,9 +534,7 @@ def get_const(name, symbolic=False, unit=None):
         e0 : "farad", "cm"
         boltzmann : "eV", "K"
 
-
-    Parameters
-    ----------
+    Parameters:
     name : str
         The name of the constant as provided by sympy
     unit : list, optional
@@ -537,8 +542,7 @@ def get_const(name, symbolic=False, unit=None):
     symbolic : bool
         Expressly stipulates whether units should be returned with the value
 
-    Returns
-    -------
+    Returns:
     const : [float, sympy.unit.Quantity]
         requested value
     """
@@ -577,6 +581,16 @@ def get_const(name, symbolic=False, unit=None):
 
 
 def parse_constant(const, unit_system="SI"):
+    """
+    Parse a physical constant and convert it to the specified unit system.
+
+    Parameters:
+    const (su.quantities.PhysicalConstant): The physical constant to be parsed.
+    unit_system (str or su.systems.UnitSystem): The unit system to convert to. Default is "SI".
+
+    Returns:
+    su.Quantity: The converted physical constant.
+    """
     if not isinstance(const, su.quantities.PhysicalConstant):
         return const
     dims = [getattr(su, str(d)) for d in const.dimension.atoms(sp.Symbol)]
@@ -588,6 +602,16 @@ def parse_constant(const, unit_system="SI"):
 
 
 def parse_unit(expr, unit_system="SI"):
+    """
+    Parse an expression and convert its units to the specified unit system.
+
+    Parameters:
+    expr (sp.Basic): The expression to be parsed.
+    unit_system (str or su.systems.UnitSystem): The unit system to convert to. Default is "SI".
+
+    Returns:
+    tuple: A tuple containing the unitless part of the expression and the units.
+    """
     if isinstance(expr, sp.Number) or not isinstance(expr, sp.Basic):
         return float(expr)
     if isinstance(unit_system, str):
