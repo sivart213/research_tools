@@ -202,7 +202,7 @@ class FunctionGUI(QMainWindow):
         function = self.module_loader.module_hierarchy[submodule_name][
             function_key
         ]
-        dialog = SolveForGUI(function)
+        self.solve_for_window = SolveForGUI(function)
 
 
     def calculate(self):

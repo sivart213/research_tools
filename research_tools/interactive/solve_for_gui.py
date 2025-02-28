@@ -75,7 +75,7 @@ class SolveForGUI(QMainWindow):
         # Create Labels
         args_label = QLabel("Arguments:")
 
-        
+
         solve_for_label = QLabel("Solve For:")
         dep_var_label = QLabel("Dependent Variable:")
         form_label = QLabel("Form:")
@@ -131,6 +131,7 @@ class SolveForGUI(QMainWindow):
         layout.addWidget(self.result_text)
 
         self.populate_args()
+        self.show()
 
     def populate_args(self):
         """
