@@ -164,6 +164,7 @@ class BaseUnits(object):
             object.__setattr__(self, "print_unit", self.unit)
         if self.base_unit == "units" and self.unit != "":
             object.__setattr__(self, "base_unit", self.unit)
+        self.class_units = None # Added to remove error. Remove if it creates new issues.
         object.__setattr__(
             self,
             "class_units",

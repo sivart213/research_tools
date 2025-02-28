@@ -4,27 +4,47 @@ Created on Wed Apr 11 17:05:01 2018.
 
 @author: JClenney
 
-General function file
+Functions: 
+- Quantum Efficiency: IQE_emitter, IQE_base, IQE_IBC_emitter1, IQE_IBC_emitter2, IQE_bulk, IQE_bulk2, IQE_depletion, IQE
+- Current: J0_layer, J0_factor, J0, current2gen, I_diode, I_cell, I_cell_DD, I_cell_Rseries, I_cell_Rshunt
+- Voltage: impliedV, V_Rseries, Voc, V_cell
+- Cell Resistances: emitter_resistance, base_resistance, finger_resistance, finger_resistivity, finger_sheet, busbar_resistance, IBC_metal_resistance
+- Cell Evaluations: cell_params, efficiency, finger_shading, finger_total_loss, FF, FF_ideal, normalised_Voc, FF_Rs, FF_Rsh, FF_RsRsh
+- Silicon Material Properties: optical_properties, phos_active, phos_solubility
+
+Sources/References:
+- 
 """
 
+from typing import Tuple
 
 import numpy as np
 import sympy as sp
 
-from ..functions import get_const, has_units, all_symbols
-
 from .physics import ni_Si, mobility_generic
+from ..functions import get_const, has_units, all_symbols
 
 
 # %% Quantum Efficiency
-def IQE_emitter(ab, We, Le, De, Se, z=1):
-    """Return the internal quantum efficiency of a solar cell emitter
-    Where:
-    ab - absorption coefficient (/cm)
-    We - thickness of the emitter (cm)
-    De - diffusivty of carriers in the emitter (cm²/s)
-    Se - recombination at the front surface (cm/s)
-    Hovel, I think."""
+def IQE_emitter(ab: float, We: float, Le: float, De: float, Se: float, z: int = 1) -> float:
+    """
+    Calculate internal quantum efficiency of a solar cell emitter.
+    EQ: IQE = (Le * ab / (ab^2 * Le^2 - 1)) * GF
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        We (float): Thickness of the emitter (cm).
+        Le (float): Diffusion length of carriers in the emitter (cm).
+        De (float): Diffusivity of carriers in the emitter (cm²/s).
+        Se (float): Recombination at the front surface (cm/s).
+        z (int, optional): Position. Default is 1.
+    
+    Returns:
+        float: Internal quantum efficiency.
+    
+    Notes:
+        Hovel, I think.
+    """
     GF = (
         (Se * Le / De)
         + ab * Le
@@ -39,14 +59,22 @@ def IQE_emitter(ab, We, Le, De, Se, z=1):
     return res
 
 
-def IQE_base(ab, We_Wd, Wb, Lb, Db, Sb, z=1):
-    """Return quantum efficiency of the base of a solar cell
-    where:
-    ab -  absorption coefficient (cm)
-    We_Wd - junction depth (cm)
-    Sb - surface recombination velocity (cm/s)
-    Lb - diffusion length of minority carrier in the base (cm)
-    Db - diffusivity of minority carriers in the base (cm²/Vs)
+def IQE_base(ab: float, We_Wd: float, Wb: float, Lb: float, Db: float, Sb: float, z: int = 1) -> float:
+    """
+    Calculate quantum efficiency of the base of a solar cell.
+    EQ: IQE = (exp(-ab * We_Wd * z)) * (Lb * ab / (ab^2 * Lb^2 - 1)) * GF
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        We_Wd (float): Junction depth (cm).
+        Wb (float): Base width (cm).
+        Lb (float): Diffusion length of minority carriers in the base (cm).
+        Db (float): Diffusivity of minority carriers in the base (cm²/s).
+        Sb (float): Surface recombination velocity (cm/s).
+        z (int, optional): Position. Default is 1.
+    
+    Returns:
+        float: Quantum efficiency.
     """
     GF = ab * Lb - (
         (Sb * Lb / Db) * (sp.cosh(Wb / Lb) - sp.exp(-ab * Wb * z))
@@ -58,16 +86,26 @@ def IQE_base(ab, We_Wd, Wb, Lb, Db, Sb, z=1):
         return float(res)
     return res
 
-
-def IQE_IBC_emitter1(ab, We_Wd, We, Le, De, Se, z=1):
-    """Return the internal quantum efficiency of a solar cell emitter
-    Where:
-    ab - absorption coefficient (/cm)
-    We_Wd - junction depth (cm)
-    We - thickness of the emitter (cm)
-    De - diffusivty of carriers in the emitter (cm²/s)
-    Se - recombination at the front surface (cm/s)
-    Hovel, I think."""
+def IQE_IBC_emitter1(ab: float, We_Wd: float, We: float, Le: float, De: float, Se: float, z: int = 1) -> float:
+    """
+    Calculate internal quantum efficiency of an IBC solar cell emitter.
+    EQ: IQE = (exp(-ab * We_Wd * z)) * (Le * ab / (ab^2 * Le^2 - 1)) * GF
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        We_Wd (float): Junction depth (cm).
+        We (float): Thickness of the emitter (cm).
+        Le (float): Diffusion length of carriers in the emitter (cm).
+        De (float): Diffusivity of carriers in the emitter (cm²/s).
+        Se (float): Recombination at the front surface (cm/s).
+        z (int, optional): Position. Default is 1.
+    
+    Returns:
+        float: Internal quantum efficiency.
+    
+    Notes:
+        Hovel, I think.
+    """
     GF = (
         (Se * Le / De)
         + ab * Le
@@ -82,15 +120,26 @@ def IQE_IBC_emitter1(ab, We_Wd, We, Le, De, Se, z=1):
     return res
 
 
-def IQE_IBC_emitter2(ab, We_Wd, Wb, Lb, Db, Sb, z=1):
-    """Return the internal quantum efficiency of a solar cell emitter
-    Where:
-    ab - absorption coefficient (/cm)
-    We_Wd - junction depth (cm)
-    We - thickness of the emitter (cm)
-    De - diffusivty of carriers in the emitter (cm²/s)
-    Se - recombination at the front surface (cm/s)
-    Hovel, I think."""
+def IQE_IBC_emitter2(ab: float, We_Wd: float, Wb: float, Lb: float, Db: float, Sb: float, z: int = 1) -> float:
+    """
+    Calculate internal quantum efficiency of an IBC solar cell emitter.
+    EQ: IQE = (exp(-ab * We_Wd * z)) * (Lb * ab / (ab^2 * Lb^2 - 1)) * GF
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        We_Wd (float): Junction depth (cm).
+        Wb (float): Base width (cm).
+        Lb (float): Diffusion length of minority carriers in the base (cm).
+        Db (float): Diffusivity of minority carriers in the base (cm²/s).
+        Sb (float): Surface recombination velocity (cm/s).
+        z (int, optional): Position. Default is 1.
+    
+    Returns:
+        float: Internal quantum efficiency.
+    
+    Notes:
+        Hovel, I think.
+    """
     GF = ab * Lb - (
         (Sb * Lb / Db) * (sp.cosh(Wb / Lb) - sp.exp(-ab * Wb * z))
         + sp.sinh(Wb / Lb)
@@ -102,14 +151,22 @@ def IQE_IBC_emitter2(ab, We_Wd, Wb, Lb, Db, Sb, z=1):
     return res
 
 
-def IQE_bulk(ab, We_Wd, Wb, Lb, Db, Sb, z=1):
-    """Return quantum efficiency of the base of a solar cell
-    where:
-    ab -  absorption coefficient (cm)
-    We_Wd - junction depth (cm)
-    Sb - surface recombination velocity (cm/s)
-    Lb - diffusion length of minority carrier in the base (cm)
-    Db - diffusivity of minority carriers in the base (cm²/Vs)
+def IQE_bulk(ab: float, We_Wd: float, Wb: float, Lb: float, Db: float, Sb: float, z: int = 1) -> float:
+    """
+    Calculate quantum efficiency of the bulk of a solar cell.
+    EQ: IQE = (exp(-ab * We_Wd * z)) * (Lb * ab / (ab^2 * Lb^2 - 1)) * GF
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        We_Wd (float): Junction depth (cm).
+        Wb (float): Base width (cm).
+        Lb (float): Diffusion length of minority carriers in the base (cm).
+        Db (float): Diffusivity of minority carriers in the base (cm²/s).
+        Sb (float): Surface recombination velocity (cm/s).
+        z (int, optional): Position. Default is 1.
+    
+    Returns:
+        float: Quantum efficiency.
     """
     GF = ab * Lb - (
         (Sb * Lb / Db) * (sp.cosh(Wb / Lb) - abs(sp.exp(-ab * Wb * z)))
@@ -122,15 +179,26 @@ def IQE_bulk(ab, We_Wd, Wb, Lb, Db, Sb, z=1):
     return res
 
 
-def IQE_bulk2(ab, We_Wd, We, Le, De, Se, z=1):
-    """Return the internal quantum efficiency of a solar cell emitter
-    Where:
-    ab - absorption coefficient (/cm)
-    We_Wd - junction depth (cm)
-    We - thickness of the emitter (cm)
-    De - diffusivty of carriers in the emitter (cm²/s)
-    Se - recombination at the front surface (cm/s)
-    Hovel, I think."""
+def IQE_bulk2(ab: float, We_Wd: float, We: float, Le: float, De: float, Se: float, z: int = 1) -> float:
+    """
+    Calculate internal quantum efficiency of a solar cell emitter.
+    EQ: IQE = (exp(-ab * We_Wd * z)) * (Le * ab / (ab^2 * Le^2 - 1)) * GF
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        We_Wd (float): Junction depth (cm).
+        We (float): Thickness of the emitter (cm).
+        Le (float): Diffusion length of carriers in the emitter (cm).
+        De (float): Diffusivity of carriers in the emitter (cm²/s).
+        Se (float): Recombination at the front surface (cm/s).
+        z (int, optional): Position. Default is 1.
+    
+    Returns:
+        float: Internal quantum efficiency.
+    
+    Notes:
+        Hovel, I think.
+    """
     GF = (
         (Se * Le / De)
         + ab * Le
@@ -144,15 +212,45 @@ def IQE_bulk2(ab, We_Wd, We, Le, De, Se, z=1):
     return res
 
 
-def IQE_depletion(ab, We, Wd):
+def IQE_depletion(ab: float, We: float, Wd: float) -> float:
+    """
+    Calculate internal quantum efficiency of the depletion region.
+    EQ: IQE = exp(-ab * We) * (1 - exp(-ab * Wd))
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        We (float): Thickness of the emitter (cm).
+        Wd (float): Depletion width (cm).
+    
+    Returns:
+        float: Internal quantum efficiency.
+    """
     res = sp.exp(-ab * We) * (1 - sp.exp(-ab * Wd))
     if isinstance(res, sp.Number):
         return float(res)
     return res
 
 
-def IQE(ab, Wd, Se, Le, De, We, Sb, Wb, Lb, Db):
-    """We is the thickness of emitter and start of the junction"""
+def IQE(ab: float, Wd: float, Se: float, Le: float, De: float, We: float, Sb: float, Wb: float, Lb: float, Db: float) -> Tuple[float, float, float, float]:
+    """
+    Calculate total internal quantum efficiency of a solar cell.
+    EQ: IQE_total = QEE + QEB + QED
+    
+    Args:
+        ab (float): Absorption coefficient (/cm).
+        Wd (float): Depletion width (cm).
+        Se (float): Recombination at the front surface (cm/s).
+        Le (float): Diffusion length of carriers in the emitter (cm).
+        De (float): Diffusivity of carriers in the emitter (cm²/s).
+        We (float): Thickness of the emitter (cm).
+        Sb (float): Surface recombination velocity (cm/s).
+        Wb (float): Base width (cm).
+        Lb (float): Diffusion length of minority carriers in the base (cm).
+        Db (float): Diffusivity of minority carriers in the base (cm²/s).
+    
+    Returns:
+        tuple: Internal quantum efficiencies (emitter, base, depletion, total).
+    """
     QEE = IQE_emitter(ab, We, Le, De, Se)
     QEB = IQE_base(ab, We + Wd, Wb, Lb, Db, Sb)
     QED = IQE_depletion(ab, We, Wd)
@@ -174,9 +272,21 @@ def IQE(ab, Wd, Se, Le, De, We, Sb, Wb, Lb, Db):
 #     return QE
 
 
-def implied_carrier(V, N, ni=8697277437.298948, T=298.15, n=1):
-    """Return excess carrier concentration (cm-3).
-    Given: voltage and doping determine"""
+def implied_carrier(V: float, N: float, ni: float = 8697277437.298948, T: float = 298.15, n: int = 1) -> float:
+    """
+    Calculate excess carrier concentration.
+    EQ: delta_n = (-N + sqrt(N^2 + 4 * ni^2 * exp(V / (n * k_B * T)))) / 2
+    
+    Args:
+        V (float): Voltage (V).
+        N (float): Doping concentration (cm⁻³).
+        ni (float, optional): Intrinsic carrier concentration (cm⁻³). Default is 8697277437.298948.
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Excess carrier concentration (cm⁻³).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -189,15 +299,21 @@ def implied_carrier(V, N, ni=8697277437.298948, T=298.15, n=1):
 
 
 # %% Current
-def J0_layer(W, N, D, L, S, ni=8697277437.298948):
-    """Return the saturation current density (A/cm2) for the narrow case.
-    Where:
-    W - layer thickness (cm)
-    N - doping (cm-3)
-    L - diffusion length (cm)
-    S - surface recombination velocity (cm/s)
-    Optional:
-    ni - intrinsic carrier concentration (cm-3)
+def J0_layer(W: float, N: float, D: float, L: float, S: float, ni: float = 8697277437.298948) -> float:
+    """
+    Calculate saturation current density for the narrow case.
+    EQ: J0 = q * ni^2 * F * D / (L * N)
+    
+    Args:
+        W (float): Layer thickness (cm).
+        N (float): Doping concentration (cm⁻³).
+        D (float): Diffusivity (cm²/s).
+        L (float): Diffusion length (cm).
+        S (float): Surface recombination velocity (cm/s).
+        ni (float, optional): Intrinsic carrier concentration (cm⁻³). Default is 8697277437.298948.
+    
+    Returns:
+        float: Saturation current density (A/cm²).
     """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
@@ -214,15 +330,21 @@ def J0_layer(W, N, D, L, S, ni=8697277437.298948):
     return res
 
 
-def J0_factor(W, N, D, L, S, ni=8697277437.298948):
-    """Return the saturation current density (A/cm2) for the narrow case.
-    Where:
-    W - layer thickness (cm)
-    N - doping (cm-3)
-    L - diffusion length (cm)
-    S - surface recombination velocity (cm/s)
-    Optional:
-    ni - intrinsic carrier concentration (cm-3)
+def J0_factor(W: float, N: float, D: float, L: float, S: float, ni: float = 8697277437.298948) -> float:
+    """
+    Calculate saturation current density factor for the narrow case.
+    EQ: F = (S * cosh(W / L) + D / L * sinh(W * L)) / (D / L * cosh(W * L) + S * sinh(W / L))
+    
+    Args:
+        W (float): Layer thickness (cm).
+        N (float): Doping concentration (cm⁻³).
+        D (float): Diffusivity (cm²/s).
+        L (float): Diffusion length (cm).
+        S (float): Surface recombination velocity (cm/s).
+        ni (float, optional): Intrinsic carrier concentration (cm⁻³). Default is 8697277437.298948.
+    
+    Returns:
+        float: Saturation current density factor.
     """
     res = (S * sp.cosh(W / L) + D / L * sp.sinh(W * L)) / (
         D / L * sp.cosh(W * L) + S * sp.sinh(W / L)
@@ -232,9 +354,28 @@ def J0_factor(W, N, D, L, S, ni=8697277437.298948):
     return res
 
 
-def J0(ni, We, Ne, De, Le, Se, Nb, Wb, Db, Lb, Sb):
-    """determines J0, the dark saturation current, under the narrow base diode
-    condition.L > W."""
+def J0(ni: float, We: float, Ne: float, De: float, Le: float, Se: float, Nb: float, Wb: float, Db: float, Lb: float, Sb: float) -> float:
+    """
+    Calculate dark saturation current under the narrow base diode condition (L > W).
+    EQ: J0 = q * ni^2 * (Fe * De / (Le * Ne) + Fb * Db / (Lb * Nb))
+    
+    Args:
+        ni (float): Intrinsic carrier concentration (cm⁻³).
+        We (float): Emitter thickness (cm).
+        Ne (float): Emitter doping concentration (cm⁻³).
+        De (float): Emitter diffusivity (cm²/s).
+        Le (float): Emitter diffusion length (cm).
+        Se (float): Emitter surface recombination velocity (cm/s).
+        Nb (float): Base doping concentration (cm⁻³).
+        Wb (float): Base width (cm).
+        Db (float): Base diffusivity (cm²/s).
+        Lb (float): Base diffusion length (cm).
+        Sb (float): Base surface recombination velocity (cm/s).
+    
+    Returns:
+        float: Dark saturation current (A/cm²).
+    
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -252,8 +393,17 @@ def J0(ni, We, Ne, De, Le, Se, Nb, Wb, Db, Lb, Sb):
     return res
 
 
-def current2gen(curr):
-    """Return generation (eh pairs/s) given current (amps)."""
+def current2gen(curr: float) -> float:
+    """
+    Convert current to generation rate.
+    EQ: G = curr / q
+    
+    Args:
+        curr (float): Current (A).
+    
+    Returns:
+        float: Generation rate (eh pairs/s).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -265,12 +415,23 @@ def current2gen(curr):
     return res
 
 
-def I_diode(V, I0, T=298.15, n=1):
-    """Return the current (A) in an ideal diode.
-    I0 is the saturation current (A),
-    V is the voltage across the junction (volts), T is the temperature (K),
-    and n is the ideallity factor (units).
-    For current density. I0 is in A/cm² and current density is returned"""
+def I_diode(V: float, I0: float, T: float = 298.15, n: int = 1) -> float:
+    """
+    Calculate current in an ideal diode.
+    EQ: I = I0 * exp(V / (n * k_B * T) - 1)
+    
+    Args:
+        V (float): Voltage (V).
+        I0 (float): Saturation current (A).
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Current (A).
+    
+    Notes:
+        For current density, I0 is in A/cm² and current density is returned.
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -281,10 +442,23 @@ def I_diode(V, I0, T=298.15, n=1):
     return res
 
 
-def I_cell(V, IL, I0, T=298.15, n=1):
-    """Return current (amps) of a solar cell
-    given voltage, light generated current, I0
-    also works for J0
+def I_cell(V: float, IL: float, I0: float, T: float = 298.15, n: int = 1) -> float:
+    """
+    Calculate current of a solar cell.
+    EQ: I = IL - I0 * exp(V / (n * k_B * T))
+    
+    Args:
+        V (float): Voltage (V).
+        IL (float): Light generated current (A).
+        I0 (float): Saturation current (A).
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Current (A).
+    
+    Notes:
+        Also works for J0.
     """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
@@ -296,10 +470,25 @@ def I_cell(V, IL, I0, T=298.15, n=1):
     return res
 
 
-def I_cell_DD(V, IL, I01, n1, I02, n2, T=298.15):
-    """Return current (amps) of a solar cell
-    given voltage, light generated current, I0
-    also works for J0
+def I_cell_DD(V: float, IL: float, I01: float, n1: int, I02: float, n2: int, T: float = 298.15) -> float:
+    """
+    Calculate current of a solar cell with double diode model.
+    EQ: I = IL - I01 * (exp(V / (n1 * k_B * T)) - 1) - I02 * (exp(V / (n2 * k_B * T)) - 1)
+    
+    Args:
+        V (float): Voltage (V).
+        IL (float): Light generated current (A).
+        I01 (float): Saturation current for first diode (A).
+        n1 (int): Ideality factor for first diode.
+        I02 (float): Saturation current for second diode (A).
+        n2 (int): Ideality factor for second diode.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Current (A).
+
+    Notes:
+        Also works for J0.
     """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
@@ -316,10 +505,24 @@ def I_cell_DD(V, IL, I01, n1, I02, n2, T=298.15):
     return res
 
 
-def I_cell_Rseries(V, Voc, Vmp, IL, I0, Imp):
-    """Return current (amps) of a solar cell
-    given voltage, light generated current, I0
-    also works for J0
+def I_cell_Rseries(V: float, Voc: float, Vmp: float, IL: float, I0: float, Imp: float) -> float:
+    """
+    Calculate current of a solar cell with series resistance.
+    EQ: I = IL - C1 * exp(-Voc / C2) * (exp(V / C2) - 1)
+    
+    Args:
+        V (float): Voltage (V).
+        Voc (float): Open circuit voltage (V).
+        Vmp (float): Voltage at maximum power point (V).
+        IL (float): Light generated current (A).
+        I0 (float): Saturation current (A).
+        Imp (float): Current at maximum power point (A).
+    
+    Returns:
+        float: Current (A).
+    
+    Notes:
+        Also works for J0.
     """
     C1 = IL
     C2 = (Vmp - Voc) / (sp.log(1 - Imp / IL))
@@ -330,8 +533,22 @@ def I_cell_Rseries(V, Voc, Vmp, IL, I0, Imp):
     return res
 
 
-def I_cell_Rshunt(V, IL, I0, Rshunt, T=298.15, n=1):
-    """Return current (A) of a solar cell from"""
+def I_cell_Rshunt(V: float, IL: float, I0: float, Rshunt: float, T: float = 298.15, n: int = 1) -> float:
+    """
+    Calculate current of a solar cell with shunt resistance.
+    EQ: I = IL - I0 * exp(V / (n * k_B * T)) - V / Rshunt
+    
+    Args:
+        V (float): Voltage (V).
+        IL (float): Light generated current (A).
+        I0 (float): Saturation current (A).
+        Rshunt (float): Shunt resistance (ohms).
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Current (A).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -343,13 +560,23 @@ def I_cell_Rshunt(V, IL, I0, Rshunt, T=298.15, n=1):
 
 
 # %% Voltage
-def impliedV(delta_n, N, T=298.15, n=1):
-    """Return voltage (V).
-    delta_n is the excess carrier concentration (cm-3),
-    N is the doping (cm-3),
-    T is the temperature (K).
-    Implied voltage is often used to convert the carrier concentration in a lifetime
-    tester to voltage."""
+def impliedV(delta_n: float, N: float, T: float = 298.15, n: int = 1) -> float:
+    """
+    Calculate implied voltage.
+    EQ: V = (n * k_B * T) * log((delta_n + N) * delta_n / ni^2)
+    
+    Args:
+        delta_n (float): Excess carrier concentration (cm⁻³).
+        N (float): Doping concentration (cm⁻³).
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Voltage (V).
+    
+    Notes:
+        Implied voltage is often used to convert the carrier concentration in a lifetime tester to voltage.
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -360,15 +587,38 @@ def impliedV(delta_n, N, T=298.15, n=1):
     return res
 
 
-def V_Rseries(voltage, curr, Rs):
-    """Returns the voltage of a solar cells under the effect of series resistance"""
+def V_Rseries(voltage: float, curr: float, Rs: float) -> float:
+    """
+    Calculate voltage of a solar cell under the effect of series resistance.
+    EQ: V = voltage - curr * Rs
+    
+    Args:
+        voltage (float): Voltage (V).
+        curr (float): Current (A).
+        Rs (float): Series resistance (ohms).
+    
+    Returns:
+        float: Voltage (V).
+    """
     return voltage - curr * Rs
 
 
-def Voc(IL, I0, T=298.15, n=1):
-    """Return the open circuit voltage, Voc, (volts) from IL(A) and I0(A).
-    IL and Io must be in the same units, Eg, (A), (mA) etc
-    Using (mA/cm**2) uses J0 and JL instead.
+def Voc(IL: float, I0: float, T: float = 298.15, n: int = 1) -> float:
+    """
+    Calculate open circuit voltage.
+    EQ: Voc = (n * k_B * T) * log(IL / I0 + 1)
+    
+    Args:
+        IL (float): Light generated current (A).
+        I0 (float): Saturation current (A).
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Open circuit voltage (V).
+    
+    Notes:
+        IL and I0 must be in the same units.
     """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
@@ -380,11 +630,24 @@ def Voc(IL, I0, T=298.15, n=1):
     return res
 
 
-def V_cell(curr, IL, I0, T=298.15, n=1):
-    """Return the voltage (V) in an ideal solar cell.
-    I0 is the saturation current (A),
-    curr is the current (A), T is the temperature (K) and n is the ideallity factor (units).
-    For current density. I0 is in A/cm² and current density is returned"""
+def V_cell(curr: float, IL: float, I0: float, T: float = 298.15, n: int = 1) -> float:
+    """
+    Calculate voltage of a solar cell.
+    EQ: V = (n * k_B * T) * log((IL - curr) / I0 + 1)
+    
+    Args:
+        curr (float): Current (A).
+        IL (float): Light generated current (A).
+        I0 (float): Saturation current (A).
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Voltage (V).
+    
+    Notes:
+        For current density, I0 is in A/cm² and current density is returned.
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -397,14 +660,33 @@ def V_cell(curr, IL, I0, T=298.15, n=1):
 
 # %% Cell Resistances
 def emitter_resistance(Rsheet, Sf):
-    """return the contribution of the emitter to cell series resistance (ohm cm²)
-    given the spacing of the fingers (cm) and the emitter sheet resistivty (ohm/ sqr)"""
+    """
+    Calculate contribution of the emitter to cell series resistance.
+    EQ: 
+    
+    Args:
+        Rsheet (float): Emitter sheet resistivity (ohm/sq).
+        Sf (float): Finger spacing (cm).
+    
+    Returns:
+        float: Series resistance (ohm·cm²).
+    """
     return Rsheet * (Sf**2) / 12
 
 
 def base_resistance(H, Nb, dopant="B"):
-    """return the contribution of the emitter to cell series resistance (ohm cm²)
-    given the spacing of the fingers (cm) and the emitter sheet resistivty (ohm/ sqr)"""
+    """
+    Calculate contribution of the base to cell series resistance.
+    EQ: 
+    
+    Args:
+        H (float): Base thickness (cm).
+        Nb (float): Base doping concentration (cm⁻³).
+        dopant (str, optional): Dopant type. Default is "B".
+    
+    Returns:
+        float: Series resistance (ohm·cm²).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -417,33 +699,96 @@ def base_resistance(H, Nb, dopant="B"):
 
 
 def finger_resistance(Rfinger, Sf, L, wf, df):
-    """return the contribution of the emitter to cell series resistance (ohm cm²)
-    given the spacing of the fingers (cm) and the emitter sheet resistivty (ohm/ sqr)"""
+    """
+    Calculate contribution of the finger to cell series resistance.
+    EQ: 
+    
+    Args:
+        Rfinger (float): Finger resistivity (ohm·cm).
+        Sf (float): Finger spacing (cm).
+        L (float): Finger length (cm).
+        wf (float): Finger width (cm).
+        df (float): Finger depth (cm).
+    
+    Returns:
+        float: Series resistance (ohm·cm²).
+    """
     return Rfinger * Sf * L**2 / (3 * wf * df)
 
 
 def finger_resistivity(L, Jmp, Sf, resistivity, wf, df, Vmp):
-    """Return the fractional resistivity power loss in a finger (0 to 1)
-    Given:
-        L: finger length (cm)
-        Jmp: currrent density at the max power point in A/cm2
-        Sf: finger spacing (cm)
+    """
+    Calculate fractional resistivity power loss in a finger.
+    EQ: 
+    
+    Args:
+        L (float): Finger length (cm).
+        Jmp (float): Current density at maximum power point (A/cm²).
+        Sf (float): Finger spacing (cm).
+        resistivity (float): Finger resistivity (ohm·cm).
+        wf (float): Finger width (cm).
+        df (float): Finger depth (cm).
+        Vmp (float): Voltage at maximum power point (V).
+    
+    Returns:
+        float: Fractional resistivity power loss (%).
     """
     return (L**2 * Jmp * Sf * resistivity) / (3 * wf * df * Vmp) * 100.0
 
 
 def finger_sheet(Sf, Jmp, Rsheet, Vmp):
+    """
+    Calculate fractional power loss due to finger sheet resistance.
+    EQ: 
+    
+    Args:
+        Sf (float): Finger spacing (cm).
+        Jmp (float): Current density at maximum power point (A/cm²).
+        Rsheet (float): Sheet resistivity (ohm/sq).
+        Vmp (float): Voltage at maximum power point (V).
+    
+    Returns:
+        float: Fractional power loss (%).
+    """
     return (Sf**2 * Jmp * Rsheet) / (12 * Vmp) * 100.0
 
 
 def busbar_resistance(Rbus, W, Z, wb, db, m):
-    """return the contribution of the emitter to cell series resistance (ohm cm²)
-    given the spacing of the fingers (cm) and the emitter sheet resistivty (ohm/ sqr)"""
+    """
+    Calculate contribution of the busbar to cell series resistance.
+    EQ: 
+    
+    Args:
+        Rbus (float): Busbar resistivity (ohm·cm).
+        W (float): Busbar width (cm).
+        Z (float): Busbar length (cm).
+        wb (float): Busbar width (cm).
+        db (float): Busbar depth (cm).
+        m (int): Number of busbars.
+    
+    Returns:
+        float: Series resistance (ohm·cm²).
+    """
     return Rbus * W * Z**2 / (3 * wb * db * m)
 
 
 def IBC_metal_resistance(Rmetal, W, Z, wfn, wfp, df, Sf):
-    """return the metal resistance of the metal contacts on the back of a IBC cell"""
+    """
+    Calculate metal resistance of the metal contacts on the back of an IBC cell.
+    EQ: 
+    
+    Args:
+        Rmetal (float): Metal resistivity (ohm·cm).
+        W (float): Cell width (cm).
+        Z (float): Cell length (cm).
+        wfn (float): Width of n-type fingers (cm).
+        wfp (float): Width of p-type fingers (cm).
+        df (float): Finger depth (cm).
+        Sf (float): Finger spacing (cm).
+    
+    Returns:
+        float: Metal resistance (ohm·cm²).
+    """
     unit = np.floor(Z / (wfn + Sf + wfp + Sf))
     #    center = unit*wfn*(W-.0125*2) + unit*wfp*(W-.0125*2)
     #    edge = Z*.01*2 + unit*wfn*.0025 + unit*wfp*.0025
@@ -454,13 +799,20 @@ def IBC_metal_resistance(Rmetal, W, Z, wfn, wfp, df, Sf):
 
 # %% Cell Evaluations
 def cell_params(V, curr):
-    """Return key parameters of a solar cell IV curve.
-    V is a voltage array and
-    curr is a current array, both with type numpy.array.
-    Voc (V), Isc (A), FF, Vmp(V), Imp(A) given voltage vector in (volts)
-    current vector in (amps) or (A/cm²)
-    If curr is in (A/cm²) then Isc will be Jsc and Imp will be Jmp.
-    No attempt is made to fit the fill factor.
+    """
+    Calculate key parameters of a solar cell IV curve.
+    EQ: 
+    
+    Args:
+        V (numpy.array): Voltage array (V).
+        curr (numpy.array): Current array (A).
+    
+    Returns:
+        tuple: Voc (V), Isc (A), FF, Vmp (V), Imp (A), Pmp (W).
+    
+    Notes:
+        If curr is in (A/cm²) then Isc will be Jsc and Imp will be Jmp.
+        No attempt is made to fit the fill factor.
     """
     Voc = np.interp(0, -curr, V)
     Isc = np.interp(0, V, curr)
@@ -472,25 +824,57 @@ def cell_params(V, curr):
 
 
 def efficiency(Voc, Isc, FF, A=1):
-    """Return the efficiency of a solar cell (units not percentage).
-    given: Voc (volts), Isc in (amps) and  FF (units).
-    also works for Jsc since area of 1 is assumed
+    """
+    Calculate efficiency of a solar cell.
+    EQ: 
+    
+    Args:
+        Voc (float): Open circuit voltage (V).
+        Isc (float): Short circuit current (A).
+        FF (float): Fill factor.
+        A (float, optional): Area (cm²). Default is 1.
+    
+    Returns:
+        float: Efficiency (%).
+    
+    Notes:
+        Also works for Jsc since area of 1 is assumed.
     """
     return 1000 * Voc * Isc * FF / A
 
 
 def finger_shading(wf, Sf):
-    """Return the fractional power loss due to finger shading (0 to 1) where wf is the wideth of the
-    finger and Sf is the finger spacing."""
+    """
+    Calculate fractional power loss due to finger shading.
+    EQ: 
+    
+    Args:
+        wf (float): Finger width (cm).
+        Sf (float): Finger spacing (cm).
+    
+    Returns:
+        float: Fractional power loss (%).
+    """
     return (wf / Sf) * 100.0
 
 
 def finger_total_loss(L, Jmp, Sf, resistivity, Rsheet, wf, df, Vmp):
-    """Return the fractional power loss in a finger
-    Given:
-        L: finger length (cm)
-        Jmp: currrent density at the max power point in A/cm2
-        Sf: finger spacing (cm)
+    """
+    Calculate total fractional power loss in a finger.
+    EQ: 
+    
+    Args:
+        L (float): Finger length (cm).
+        Jmp (float): Current density at maximum power point (A/cm²).
+        Sf (float): Finger spacing (cm).
+        resistivity (float): Finger resistivity (ohm·cm).
+        Rsheet (float): Sheet resistivity (ohm/sq).
+        wf (float): Finger width (cm).
+        df (float): Finger depth (cm).
+        Vmp (float): Voltage at maximum power point (V).
+    
+    Returns:
+        tuple: Total fractional power loss (%), resistivity loss (%), shading loss (%), sheet loss (%).
     """
     Presistivity = finger_resistivity(L, Jmp, Sf, resistivity, wf, df, Vmp)
     Pshading = finger_shading(wf, Sf)
@@ -499,14 +883,35 @@ def finger_total_loss(L, Jmp, Sf, resistivity, Rsheet, wf, df, Vmp):
 
 
 def FF(Vmp, Imp, Voc, Isc):
-    """Return FFv the fill factor of a solar cell.
-    given Voc - open circuit voltage (volts)"""
+    """
+    Calculate fill factor of a solar cell.
+    EQ: 
+    
+    Args:
+        Vmp (float): Voltage at maximum power point (V).
+        Imp (float): Current at maximum power point (A).
+        Voc (float): Open circuit voltage (V).
+        Isc (float): Short circuit current (A).
+    
+    Returns:
+        float: Fill factor.
+    """
     return (Vmp * Imp) / (Voc * Isc)
 
 
 def FF_ideal(Voc, ideality=1, T=298.15):
-    """Return the FF (units)
-    given Voc - open circuit voltage (volts), ideality factor, defaults to 1 (units)"""
+    """
+    Calculate ideal fill factor.
+    EQ: 
+    
+    Args:
+        Voc (float): Open circuit voltage (V).
+        ideality (int, optional): Ideality factor. Default is 1.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Ideal fill factor.
+    """
     voc = normalised_Voc(Voc, ideality, T)
     res = (voc - sp.log(voc + 0.72)) / (voc + 1)
     if isinstance(res, sp.Number):
@@ -515,8 +920,19 @@ def FF_ideal(Voc, ideality=1, T=298.15):
 
 
 def normalised_Voc(Voc, ideality, T=298.15, n=1):
-    """Return the normalised voc of a solar cell.Voc is the open-circuit voltage,
-    'ideality' is the ideality factor and T is the temperature (K)"""
+    """
+    Calculate normalised open circuit voltage.
+    EQ: 
+    
+    Args:
+        Voc (float): Open circuit voltage (V).
+        ideality (int): Ideality factor.
+        T (float, optional): Temperature (K). Default is 298.15.
+        n (int, optional): Ideality factor. Default is 1.
+    
+    Returns:
+        float: Normalised open circuit voltage.
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -528,15 +944,20 @@ def normalised_Voc(Voc, ideality, T=298.15, n=1):
 
 
 def FF_Rs(Voc, Isc, Rseries, ideality=1, T=298.15):
-    """Return the FF (units)
-    Given:
-        Voc - open circuit voltage (volts)
-        Isc - short circuit current (amps)
-        Rseries - series resistance (ohms)
-        ideality factor (units)
-        T - temperature (K)
     """
-    # voc = normalised_Voc(Voc, ideality, T)
+    Calculate fill factor with series resistance.
+    EQ: 
+    
+    Args:
+        Voc (float): Open circuit voltage (V).
+        Isc (float): Short circuit current (A).
+        Rseries (float): Series resistance (ohms).
+        ideality (int, optional): Ideality factor. Default is 1.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Fill factor.
+    """
     RCH = Voc / Isc
     rs = Rseries / RCH
     FF0 = FF_ideal(Voc, ideality, T)
@@ -545,9 +966,19 @@ def FF_Rs(Voc, Isc, Rseries, ideality=1, T=298.15):
 
 
 def FF_Rsh(Voc, Isc, Rshunt, ideality=1, T=298.15):
-    """Return the FF (units)
-    Given:
-        Voc - open circuit voltage (volts)
+    """
+    Calculate fill factor with shunt resistance.
+    EQ: 
+    
+    Args:
+        Voc (float): Open circuit voltage (V).
+        Isc (float): Short circuit current (A).
+        Rshunt (float): Shunt resistance (ohms).
+        ideality (int, optional): Ideality factor. Default is 1.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Fill factor.
     """
     voc = normalised_Voc(Voc, ideality, T)
     RCH = Voc / Isc
@@ -558,6 +989,21 @@ def FF_Rsh(Voc, Isc, Rshunt, ideality=1, T=298.15):
 
 
 def FF_RsRsh(Voc, Isc, Rseries, Rshunt, ideality=1, T=298.15):
+    """
+    Calculate fill factor with series and shunt resistance.
+    EQ: 
+    
+    Args:
+        Voc (float): Open circuit voltage (V).
+        Isc (float): Short circuit current (A).
+        Rseries (float): Series resistance (ohms).
+        Rshunt (float): Shunt resistance (ohms).
+        ideality (int, optional): Ideality factor. Default is 1.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Fill factor.
+    """
     voc = normalised_Voc(Voc, ideality, T)
     RCH = Voc / Isc
     rsh = Rshunt / RCH
@@ -570,11 +1016,23 @@ def FF_RsRsh(Voc, Isc, Rseries, Rshunt, ideality=1, T=298.15):
 # %% silicon material properties
 # silicon material properties
 def optical_properties(fname):
-    """Returns an array with the optical properties of a material
-    column 0 - wavelngth (nm)
-    column 1 - absorption coefficient (/cm)
-    column 2 - real refractive index
-    column 3 - imaginary refractive index
+    """
+    Get optical properties of a material.
+    EQ: 
+    
+    Args:
+        fname (str): File name containing optical properties.
+    
+    Returns:
+        tuple: 
+            Wavelength (nm), 
+            absorption coefficient (/cm), 
+            real refractive index, 
+            imaginary refractive index.
+    
+    Notes:
+        If no file is given, silicon is used.
+
     if so file is given then silicon is used
     Eg: wavelength, abs_coeff, n, KB_J = optical_properties()
     """
@@ -587,8 +1045,16 @@ def optical_properties(fname):
 
 # processing
 def phos_active(T):
-    """Return the active limit of phosphorous in silicon
-    given temperature (K)"""
+    """
+    Calculate active limit of phosphorous in silicon.
+    EQ: 
+    
+    Args:
+        T (float): Temperature (K).
+    
+    Returns:
+        float: Active limit of phosphorous (cm⁻³).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -602,8 +1068,16 @@ def phos_active(T):
 
 
 def phos_solubility(T):
-    """Return the solubility limit of phosphorous in silicon
-    given the temperature (K)"""
+    """
+    Calculate solubility limit of phosphorous in silicon.
+    EQ: 
+    
+    Args:
+        T (float): Temperature (K).
+    
+    Returns:
+        float: Solubility limit of phosphorous (cm⁻³).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
