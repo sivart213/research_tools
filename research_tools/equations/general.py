@@ -393,7 +393,7 @@ def integral(x: Optional[sp.Symbol] = None, bound: Optional[Tuple[float, float]]
 # %% Geometric
 def line(x: float, m: float = 1, b: float = 0) -> float:
     """
-    Calculate the equation of a line.
+    Calculates the equation of a line.
     EQ: y = m * x + b
     
     Args:

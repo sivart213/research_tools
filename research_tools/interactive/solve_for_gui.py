@@ -10,6 +10,7 @@ General function file
 # import re
 import sys
 import inspect
+
 # import importlib
 # from pathlib import Path
 
@@ -33,9 +34,10 @@ from PyQt5.QtWidgets import (
 )
 
 
-from .gui_tools import ModuleLoader, OptionsDialog, CollapsibleText, sci_note, safe_eval
+from .gui_tools import OptionsDialog, CollapsibleText, sci_note, safe_eval
 
 from ..functions import solve_for_variable
+
 
 class SolveForGUI(QMainWindow):
     """
@@ -75,7 +77,6 @@ class SolveForGUI(QMainWindow):
         # Create Labels
         args_label = QLabel("Arguments:")
 
-
         solve_for_label = QLabel("Solve For:")
         dep_var_label = QLabel("Dependent Variable:")
         form_label = QLabel("Form:")
@@ -86,8 +87,8 @@ class SolveForGUI(QMainWindow):
         self.form_edit = QLineEdit()
 
         # Create CollapsibleTexts
-        self.function_doc_text = CollapsibleText(inspect.getdoc(self.function), central_widget)
-        self.solve_for_doc_text = CollapsibleText(inspect.getdoc(solve_for_variable), central_widget)
+        self.function_doc_text = CollapsibleText(inspect.getdoc(self.function), central_widget)  # type: ignore
+        self.solve_for_doc_text = CollapsibleText(inspect.getdoc(solve_for_variable), central_widget)  # type: ignore
         self.result_text = CollapsibleText("", central_widget, False)
 
         # Create Buttons
@@ -172,14 +173,14 @@ class SolveForGUI(QMainWindow):
             if self.options["sci_notation"]:
                 if isinstance(result, (list, tuple)):
                     result = [
-                        sci_note(res, self.options["precision"])
-                        for res in result
+                        sci_note(res, self.options["precision"]) for res in result
                     ]
                 else:
                     result = sci_note(result, self.options["precision"])
             self.result_text.insert_text(str(result))
         except Exception as e:
             self.result_text.insert_text(f"Error: {e}")
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
