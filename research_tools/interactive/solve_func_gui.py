@@ -9,11 +9,11 @@ General function file
 # import os
 import re
 import sys
+
 # import inspect
 # import importlib
 # from pathlib import Path
 
-import numpy as np
 
 from PyQt5.QtWidgets import (
     QApplication,
@@ -82,17 +82,11 @@ class FunctionGUI(QMainWindow):
 
         # Create ComboBoxes
         self.submodule_combobox = QComboBox()
-        self.submodule_combobox.addItems(
-            self.module_loader.module_hierarchy.keys()
-        )
-        self.submodule_combobox.currentIndexChanged.connect(
-            self.on_submodule_change
-        )
+        self.submodule_combobox.addItems(self.module_loader.module_hierarchy.keys())
+        self.submodule_combobox.currentIndexChanged.connect(self.on_submodule_change)
 
         self.function_combobox = QComboBox()
-        self.function_combobox.currentIndexChanged.connect(
-            self.on_function_change
-        )
+        self.function_combobox.currentIndexChanged.connect(self.on_function_change)
 
         # Create CollapsibleTexts
         self.doc_text = CollapsibleText("", central_widget)
@@ -166,9 +160,7 @@ class FunctionGUI(QMainWindow):
             self.module_loader.get_func_docstring(submodule_name, function_key)
         )
 
-        params = self.module_loader.get_func_params(
-            submodule_name, function_key
-        )
+        params = self.module_loader.get_func_params(submodule_name, function_key)
         while self.args_form_layout.count():
             item = self.args_form_layout.takeAt(0)
             if item.widget():
@@ -199,11 +191,8 @@ class FunctionGUI(QMainWindow):
         """
         function_key = self.function_combobox.currentText()
         submodule_name = self.submodule_combobox.currentText()
-        function = self.module_loader.module_hierarchy[submodule_name][
-            function_key
-        ]
+        function = self.module_loader.module_hierarchy[submodule_name][function_key]
         self.solve_for_window = SolveForGUI(function)
-
 
     def calculate(self):
         """
@@ -211,9 +200,7 @@ class FunctionGUI(QMainWindow):
         """
         function_key = self.function_combobox.currentText()
         submodule_name = self.submodule_combobox.currentText()
-        function = self.module_loader.module_hierarchy[submodule_name][
-            function_key
-        ]
+        function = self.module_loader.module_hierarchy[submodule_name][function_key]
         args = {}
         for name, widget in self.arg_widgets.items():
             args[name] = safe_eval(widget.text())
@@ -223,8 +210,7 @@ class FunctionGUI(QMainWindow):
             if self.options["sci_notation"]:
                 if isinstance(result, (list, tuple)):
                     result = [
-                        sci_note(res, self.options["precision"])
-                        for res in result
+                        sci_note(res, self.options["precision"]) for res in result
                     ]
                 else:
                     result = sci_note(result, self.options["precision"])
@@ -232,13 +218,11 @@ class FunctionGUI(QMainWindow):
                 function.__name__,
                 args,
                 result,
-                self.module_loader.get_func_docstring(
-                    submodule_name, function_key
-                ),
+                self.module_loader.get_func_docstring(submodule_name, function_key),
             )
             self.result_text.insert_text(str(result))
-        except Exception as e:
-            self.result_text.insert_text(f"Error: {e}")
+        except Exception as exc:
+            self.result_text.insert_text(f"Error: {exc}")
 
     def parse_docstring(self, docstring, expected_names=1):
         """
@@ -259,9 +243,7 @@ class FunctionGUI(QMainWindow):
         elif len(matches) != expected_names == 1:
             matches = [" ".join(matches)]
         elif len(matches) != expected_names > 1:
-            if expected_names == len(
-                sub_matches := re.split(r"[,;]", sub_string[1])
-            ):
+            if expected_names == len(sub_matches := re.split(r"[,;]", sub_string[1])):
                 matches = sub_matches
             elif (len(matches) % expected_names) == 0:
                 seg_len = len(matches) // expected_names
@@ -281,9 +263,7 @@ class FunctionGUI(QMainWindow):
         for grp in matches:
             # Evaluate each name/unit pairs
             names = re.findall(r"((?:\b\w+\b)|\((?:.*?)\))", grp)
-            unit = (
-                " " + names.pop() if names[-1].startswith(("(", "[")) else ""
-            )
+            unit = " " + names.pop() if names[-1].startswith(("(", "[")) else ""
 
             if len(name := " ".join([n for n in names])) > 16:
                 name = ""

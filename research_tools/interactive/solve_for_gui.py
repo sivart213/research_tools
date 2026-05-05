@@ -178,8 +178,8 @@ class SolveForGUI(QMainWindow):
                 else:
                     result = sci_note(result, self.options["precision"])
             self.result_text.insert_text(str(result))
-        except Exception as e:
-            self.result_text.insert_text(f"Error: {e}")
+        except Exception as exc:
+            self.result_text.insert_text(f"Error: {exc}")
 
 
 if __name__ == "__main__":

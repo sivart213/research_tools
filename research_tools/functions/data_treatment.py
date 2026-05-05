@@ -61,9 +61,7 @@ def has_arrays(arg, func):
         for k, v in arg.items()
         if isinstance(v, (np.ndarray, sp.Array))
     }
-    if (
-        symb_var == {}
-    ):  # or any([isinstance(v, sp.Symbol) for v in arg.values()]):
+    if symb_var == {}:  # or any([isinstance(v, sp.Symbol) for v in arg.values()]):
         return False, None
     else:
         expr = func(**{**arg, **symb_var})
@@ -248,7 +246,7 @@ def pick_math_module(arg):
 #         expr = func
 #     else:
 #         expr = None
-        
+
 
 #     if res_form.lower() == "expr" or not isinstance(expr, sp.Basic):
 #         return expr
@@ -271,6 +269,7 @@ def pick_math_module(arg):
 #         return vars()[res_form]
 #     except KeyError:
 #         return res
+
 
 def function_to_expr(func):
     """
@@ -300,9 +299,8 @@ def function_to_expr(func):
     expr = func(*all_args, **kwonlyargs)
     return expr
 
-def solve_for_variable(
-    func, target=None, dep_var="res", res_form="res", **kwargs
-):
+
+def solve_for_variable(func, target=None, dep_var="res", res_form="res", **kwargs):
     """
     Call sympy to solve for the target variable.
 
@@ -366,7 +364,7 @@ def solve_for_variable(
     # Secondary substitution to get numeric result
     if kwargs:
         res = res.subs(extract_variables(res, kwargs))
-    
+
     num = res
     try:
         num = float(num)
@@ -377,7 +375,8 @@ def solve_for_variable(
         return vars()[res_form]
     except KeyError:
         return res
-    
+
+
 def extract_variables(expr, targets):
     """
     Extract variables from an expression based on a list/tuple/dict of target variable names.
@@ -462,7 +461,6 @@ def create_function(func, targ, var=None, cost=None, **kwargs):
         expr = func
     else:
         expr = None
-        
 
     args = {}
 
@@ -604,7 +602,7 @@ def convert_val(val, iunit, funit, expon=1):
     expon : int
         exponential value of unit
         default : 1
-    
+
     Returns
     -------
     val : [float, array/series of floats]
@@ -659,9 +657,7 @@ def convert_temp(val, iunit, funit, expon=1):
         funit = funit[-1]
 
     res = (
-        temperature_eqns[f"{iunit.upper()}to{funit.upper()}"](
-            val ** (1 / expon)
-        )
+        temperature_eqns[f"{iunit.upper()}to{funit.upper()}"](val ** (1 / expon))
         / p_val
     )
 
@@ -711,9 +707,7 @@ def get_const(name, symbolic=False, unit=None):
         if not isinstance(unit, list):
             unit = [unit]
         try:
-            unit = [
-                getattr(su, un) if isinstance(un, str) else un for un in unit
-            ]
+            unit = [getattr(su, un) if isinstance(un, str) else un for un in unit]
             const = su.convert_to(const, unit).n()
         except (AttributeError, ValueError, TypeError):
             pass
@@ -765,9 +759,7 @@ def parse_unit(expr, unit_system="SI"):
     if isinstance(unit_system, str):
         unit_system = getattr(su.systems, "SI")
     consts = list(expr.atoms(su.quantities.PhysicalConstant))
-    expr = expr.subs(
-        {c: parse_constant(c, unit_system) for c in consts}
-    ).simplify()
+    expr = expr.subs({c: parse_constant(c, unit_system) for c in consts}).simplify()
 
     units = list(expr.atoms(su.Quantity))
     pows = list(expr.atoms(sp.Pow))
@@ -784,10 +776,7 @@ def parse_unit(expr, unit_system="SI"):
     for n in range(len(units.atoms(su.Quantity))):
         if len(units.atoms(su.Quantity)) == 1:
             break
-        munits = [
-            su.convert_to(units, u)
-            for u in unit_system.get_units_non_prefixed()
-        ]
+        munits = [su.convert_to(units, u) for u in unit_system.get_units_non_prefixed()]
         for t in munits:
             if len(t.atoms(su.Quantity)) < len(units.atoms(su.Quantity)):
                 units = t
@@ -824,9 +813,7 @@ def eval_string(text):
             res = {}
             for item in items:
                 it = [i.strip() for i in item.split(":")]
-                res[it[0]] = (
-                    eval_string(":".join(it[1:])) if len(it) > 1 else None
-                )
+                res[it[0]] = eval_string(":".join(it[1:])) if len(it) > 1 else None
         else:
             res = [eval_string(item.strip()) for item in items]
             if ends == bkts[0]:
@@ -841,9 +828,7 @@ def eval_string(text):
         return None
     elif bool(re.findall(r"\d", text)):
         try:
-            res = sp.parse_expr(
-                text, transformations=sp.parsing.sympy_parser.T[5]
-            )
+            res = sp.parse_expr(text, transformations=sp.parsing.sympy_parser.T[5])
             return res
         except (TypeError, SyntaxError, KeyError, NameError):
             return text
@@ -945,9 +930,7 @@ def sample_array(array, get_index=False, **kwargs):
         arr_step = arr_max / (arr_size - 1)
     else:
         if arr_max % arr_step != 0:
-            arr_steps = [
-                x for x in range(int(2 * arr_step), 0, -1) if arr_max % x == 0
-            ]
+            arr_steps = [x for x in range(int(2 * arr_step), 0, -1) if arr_max % x == 0]
             if len(arr_steps) != 0:
                 arr_step = arr_steps[0]
         arr_size = min(int(kwargs.get("arr_size", len(array))), len(array))
@@ -957,9 +940,7 @@ def sample_array(array, get_index=False, **kwargs):
     if arr_step >= 1:
         arr_ind_vals = np.arange(arr_max + arr_step, step=arr_step)
     else:
-        arr_ind_vals = np.linspace(
-            min(array), arr_max, int(arr_max / arr_step + 1)
-        )
+        arr_ind_vals = np.linspace(min(array), arr_max, int(arr_max / arr_step + 1))
 
     arr_ind = find_nearest(array, arr_ind_vals)
 
@@ -1084,9 +1065,7 @@ def dict_flat(data):
 
 def dict_search(data, key, default=None):
     if isinstance(data, dict):
-        if key in data.keys() or not any(
-            [isinstance(v, dict) for v in data.values()]
-        ):
+        if key in data.keys() or not any([isinstance(v, dict) for v in data.values()]):
             return data.get(key, default)
         for k, v in data.items():
             res = dict_search(v, key)
@@ -1117,27 +1096,17 @@ def dict_df(data, single=True):
                     if not isinstance(v, (np.ndarray, list, tuple, dict))
                 }
                 vals_dicts = {
-                    k: dict_df(v, single)
-                    for k, v in val.items()
-                    if isinstance(v, dict)
+                    k: dict_df(v, single) for k, v in val.items() if isinstance(v, dict)
                 }
                 if single and len(vals) > 0:
                     vlen = max([len(v) for v in vals.values()])
                     data[key] = pd.DataFrame(
-                        {
-                            str(kk): vv
-                            for kk, vv in vals.items()
-                            if len(vv) == vlen
-                        }
+                        {str(kk): vv for kk, vv in vals.items() if len(vv) == vlen}
                     )
                 else:
                     tmp_new = {
                         str(len(v)): pd.DataFrame(
-                            {
-                                kk: vv
-                                for kk, vv in vals.items()
-                                if len(vv) == len(v)
-                            }
+                            {kk: vv for kk, vv in vals.items() if len(vv) == len(v)}
                         )
                         for k, v in vals.items()
                     }
@@ -1151,8 +1120,8 @@ def dict_df(data, single=True):
                             **vals_dicts,
                             **{"attrs": attrs},
                         }
-    except (AttributeError, ValueError) as e:
-        print(e)
+    except (AttributeError, ValueError) as exc:
+        print(exc)
         return data
 
     try:
@@ -1161,15 +1130,13 @@ def dict_df(data, single=True):
             return pd.DataFrame(data)
         else:
             return data
-    except (AttributeError, ValueError) as e:
-        print(e)
+    except (AttributeError, ValueError) as exc:
+        print(exc)
         return data
 
 
 # %% Fitting functions
-def gen_bnds(
-    arr, dev=0.1, dev_type="infer", abs_bnd=[(0, np.inf)], max_bnd=False
-):
+def gen_bnds(arr, dev=0.1, dev_type="infer", abs_bnd=[(0, np.inf)], max_bnd=False):
     """
     Generate upper and lower boundaries for an array of values. Boundary range
     can be set directly via dev_type or is inferred by the dtype of the dev.
@@ -1218,15 +1185,14 @@ def gen_bnds(
         print("Error: bad bound input")
         return (amin, amax)
     for n in range(len(arr)):
-        if (
-            int(dev[n]) == dev[n] and dev_type[n] == "infer"
-        ) or "log" in dev_type[n].lower():
+        if (int(dev[n]) == dev[n] and dev_type[n] == "infer") or "log" in dev_type[
+            n
+        ].lower():
             # intergers are assumed to be log variation
             an = arr[n] * 10 ** float(-dev[n])
             ax = arr[n] * 10 ** float(dev[n])
         elif (
-            dev[n] in sp.Interval(0.1, 100)
-            and abs(np.log10(abs(arr[n] / dev[n]))) > 2
+            dev[n] in sp.Interval(0.1, 100) and abs(np.log10(abs(arr[n] / dev[n]))) > 2
         ) or "perc" in dev_type[n].lower():
             an = arr[n] * (1 - dev[n])
             ax = arr[n] * (1 + dev[n])
@@ -1255,9 +1221,7 @@ def ode_bounds(f=None, x=None, ind=0, dep=0, deg=0, **kwargs):
             return {f(x).diff(*[x] * int(deg)).subs(x, ind): dep}
         return {f(ind): dep}
 
-    if isinstance(bnds, dict) and all(
-        isinstance(m, sp.Basic) for m in bnds.keys()
-    ):
+    if isinstance(bnds, dict) and all(isinstance(m, sp.Basic) for m in bnds.keys()):
         return bnds
     elif isinstance(bnds, (tuple, list)):
         if all(isinstance(n, (int, float, np.number)) for n in bnds):
@@ -1410,9 +1374,7 @@ if __name__ == "__main__":
         cost_basic, 15, kwargs=dict(targ=None, func=func2, x=xx, y=yy_var)
     )
 
-    func3 = create_function(
-        eqs.line, "b", "y", cost=cost_basic, kwargs=dict(m=2)
-    )
+    func3 = create_function(eqs.line, "b", "y", cost=cost_basic, kwargs=dict(m=2))
     test3 = optimize.least_squares(func3, 15, kwargs=dict(x=xx, y=yy_var))
 
     func4 = create_function(eqs.line, "b", "y", kwargs=dict(m=2))
@@ -1424,16 +1386,12 @@ if __name__ == "__main__":
     test5 = optimize.least_squares(
         cost_basic,
         15,
-        kwargs=dict(
-            targ=None, func=func5, x=1, t=1, z=1, E=0, L=1, conc0=1, D=1, T=1
-        ),
+        kwargs=dict(targ=None, func=func5, x=1, t=1, z=1, E=0, L=1, conc0=1, D=1, T=1),
     )
 
     func6 = create_function(eqs.nernst_planck_analytic_sol, "t", "t")
     test6 = optimize.least_squares(
         cost_basic,
         2,
-        kwargs=dict(
-            targ=test5["x"], func=func6, x=1, z=1, E=0, L=1, conc0=1, D=1, T=1
-        ),
+        kwargs=dict(targ=test5["x"], func=func6, x=1, z=1, E=0, L=1, conc0=1, D=1, T=1),
     )
