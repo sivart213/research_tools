@@ -12,7 +12,7 @@ import pandas as pd
 import sympy as sp
 import sympy.physics.units as su
 
-from inspect import getfullargspec
+from inspect import signature
 
 # from dataclasses import dataclass, InitVar
 from scipy.optimize import curve_fit
@@ -90,124 +90,215 @@ def pick_math_module(arg):
     return module
 
 
-def function_to_expr(func, **kwargs):
+# def function_to_expr(func, **kwargs):
+#     """
+#     Call sympy to solve for the target variable.
+
+#     Uses sympy to rework the function, solving for a new variable. Requires the input function to
+#     use sympy compatable functions. i.e. use sp.sqrt vice np.sqrt.  Any non-sympy functions must
+#     not contain a variable.
+
+#     Parameters
+#     ----------
+#     target : str, sympy.Symbol
+#         The name of the target variable
+#     func : function
+#         callable function to be converted
+#     dep_var : str, sympy.Symbol
+#         name/symbol of the dependant variable/solution
+#     res_form : str
+#         Name of requested ouptut.
+#         Options :
+#             expr : result of function with sympy variables
+#             eqn : sympy.Eq of dep_var and expr
+#             res_set : sympy.solveset of eqn solved for target
+#             res : expression of res_set
+#     kwargs :
+#         Dictionary of any additional function arguments
+
+#     Returns
+#     -------
+#     res : varied
+#         requested value
+#     """
+#     argspec = getfullargspec(func)
+
+#     # Pull *args out of kwargs if named
+#     varargs = kwargs.pop(argspec[1], [])
+#     kargs = kwargs.pop("args", {})
+
+#     # Pull any dictionarys to top level
+#     kkeys = list(kwargs.keys())
+#     [
+#         kwargs.update(kwargs.pop(k))
+#         for k in kkeys
+#         if isinstance(kwargs[k], dict)
+#     ]
+
+#     # get function arguments as symbols
+#     if isinstance(kargs, dict):
+#         args = [
+#             kargs.pop(a, kwargs.pop(a, sp.symbols(a, real=True)))
+#             for a in argspec[0]
+#         ]
+#         kwonlyargs = {
+#             a: kargs.pop(a, kwargs.pop(a, sp.symbols(a, real=True)))
+#             for a in argspec[4]
+#         }
+#     else:
+#         args = [kwargs.pop(a, sp.symbols(a, real=True)) for a in argspec[0]]
+#         kwonlyargs = {
+#             a: kwargs.pop(a, sp.symbols(a, real=True)) for a in argspec[4]
+#         }
+#         if isinstance(kargs, int):
+#             varargs = kwargs.pop(argspec[1], kargs)
+#             kargs = [kargs]
+#         else:
+#             kargs = list(kargs)
+#             args[len(args) - len(kargs[: len(args)]) :] = [
+#                 sp.symbols(str(a), real=True) for a in kargs[: len(args)]
+#             ]
+
+#     varargs = kwargs.pop(argspec[1], kwargs.pop("args", varargs))
+#     if argspec[1] is None:
+#         varargs = []
+#     elif len(kargs) > len(args):
+#         varargs = kargs[len(args) :]
+#     elif varargs == [] and "args" in kkeys:
+#         varargs = list(kwargs.values())
+
+#     varkw = {}
+#     if argspec[2] is not None:
+#         varkw = kwargs
+
+#     if varargs != []:
+#         # If args is not empty, try to parse
+#         if (
+#             isinstance(varargs, (list, tuple, np.ndarray))
+#             and len(varargs) == 1
+#         ):
+#             varargs = varargs[0]
+#         if isinstance(varargs, int):
+#             sign = int(-1*varargs / abs(varargs))
+#             varargs = [
+#                 sp.symbols(f"C_{a+sign}", real=True)
+#                 for a in range(varargs, 0, sign)
+#             ]
+#         elif isinstance(varargs, str):
+#             varargs = [sp.symbols(a, real=True) for a in varargs.split(" ")]
+#         elif isinstance(varargs, (list, tuple, np.ndarray)):
+#             varargs = [sp.symbols(str(a), real=True) for a in varargs]
+#         elif isinstance(varargs, (dict)):
+#             varargs = [sp.symbols(str(a), real=True) for a in varargs.values()]
+
+#     expr = func(*args, *varargs, **kwonlyargs, **varkw)
+#     if not hasattr(expr, "free_symbols"):
+#         return expr
+#     res_dict = {
+#         a: eval(str(a))
+#         for a in expr.free_symbols
+#         if not bool(
+#             re.findall(
+#                 "[a-df-zA-DF-Z\\\\@!&^]|^[/eE]|[/eE]$|^\\..+\\.$", str(a)
+#             )
+#         )
+#     }
+#     res = expr.subs(res_dict)
+#     if isinstance(res, sp.Number):
+#         return float(res)
+#     return res
+
+
+# def solve_for_variable(
+#     func, target=None, dep_var="res", res_form="res", **kwargs
+# ):
+#     """
+#     Call sympy to solve for the target variable.
+
+#     Uses sympy to rework the function, solving for a new variable. Requires the input function to
+#     use sympy compatable functions. i.e. use sp.sqrt vice np.sqrt.  Any non-sympy functions must
+#     not contain a variable.
+
+#     Parameters
+#     ----------
+#     target : str, sympy.Symbol
+#         The name of the target variable
+#     func : function
+#         callable function to be converted
+#     dep_var : str, sympy.Symbol
+#         name/symbol of the dependant variable/solution
+#     res_form : str
+#         Name of requested ouptut.
+#         Options :
+#             expr : result of function with sympy variables
+#             eqn : sympy.Eq of dep_var and expr
+#             res_set : sympy.solveset of eqn solved for target
+#             res : expression of res_set
+#     kwargs :
+#         Dictionary of any additional function arguments
+
+#     Returns
+#     -------
+#     res : varied
+#         requested value
+#     """
+#     if callable(func):
+#         expr = function_to_expr(func, **kwargs)
+#     elif isinstance(func, sp.Basic):
+#         expr = func
+#     else:
+#         expr = None
+        
+
+#     if res_form.lower() == "expr" or not isinstance(expr, sp.Basic):
+#         return expr
+
+#     if isinstance(dep_var, str):
+#         dep_var = sp.symbols(dep_var, real=True)
+
+#     eqn = sp.Eq(dep_var, expr)
+#     if res_form.lower() == "eqn" or target is None:
+#         return eqn
+
+#     if isinstance(target, str):
+#         target = sp.symbols(target, real=True)
+
+#     res_set = sp.solveset(eqn, target)
+#     res = res_set.args
+#     if len(res) > 0:
+#         res = res[0]
+#     try:
+#         return vars()[res_form]
+#     except KeyError:
+#         return res
+
+def function_to_expr(func):
     """
-    Call sympy to solve for the target variable.
-
-    Uses sympy to rework the function, solving for a new variable. Requires the input function to
-    use sympy compatable functions. i.e. use sp.sqrt vice np.sqrt.  Any non-sympy functions must
-    not contain a variable.
-
-    Parameters
-    ----------
-    target : str, sympy.Symbol
-        The name of the target variable
-    func : function
-        callable function to be converted
-    dep_var : str, sympy.Symbol
-        name/symbol of the dependant variable/solution
-    res_form : str
-        Name of requested ouptut.
-        Options :
-            expr : result of function with sympy variables
-            eqn : sympy.Eq of dep_var and expr
-            res_set : sympy.solveset of eqn solved for target
-            res : expression of res_set
-    kwargs :
-        Dictionary of any additional function arguments
-
-    Returns
-    -------
-    res : varied
-        requested value
+    Use sympy to convert a function to an expression.
     """
-    argspec = getfullargspec(func)
+    sig = signature(func)
+    params = sig.parameters
 
-    # Pull *args out of kwargs if named
-    varargs = kwargs.pop(argspec[1], [])
-    kargs = kwargs.pop("args", {})
+    # Initialize lists for different types of arguments
+    args = []
+    varargs = []
+    kwonlyargs = {}
 
-    # Pull any dictionarys to top level
-    kkeys = list(kwargs.keys())
-    [
-        kwargs.update(kwargs.pop(k))
-        for k in kkeys
-        if isinstance(kwargs[k], dict)
-    ]
+    # Convert function arguments to sympy symbols
+    for name, param in params.items():
+        if param.kind in (param.POSITIONAL_OR_KEYWORD, param.POSITIONAL_ONLY):
+            args.append(sp.symbols(name, real=True))
+        elif param.kind == param.VAR_POSITIONAL:
+            varargs.append(sp.symbols(name, real=True))
+        elif param.kind in (param.KEYWORD_ONLY, param.VAR_KEYWORD):
+            kwonlyargs[name] = sp.symbols(name, real=True)
 
-    # get function arguments as symbols
-    if isinstance(kargs, dict):
-        args = [
-            kargs.pop(a, kwargs.pop(a, sp.symbols(a, real=True)))
-            for a in argspec[0]
-        ]
-        kwonlyargs = {
-            a: kargs.pop(a, kwargs.pop(a, sp.symbols(a, real=True)))
-            for a in argspec[4]
-        }
-    else:
-        args = [kwargs.pop(a, sp.symbols(a, real=True)) for a in argspec[0]]
-        kwonlyargs = {
-            a: kwargs.pop(a, sp.symbols(a, real=True)) for a in argspec[4]
-        }
-        if isinstance(kargs, int):
-            varargs = kwargs.pop(argspec[1], kargs)
-            kargs = [kargs]
-        else:
-            kargs = list(kargs)
-            args[len(args) - len(kargs[: len(args)]) :] = [
-                sp.symbols(str(a), real=True) for a in kargs[: len(args)]
-            ]
+    # Combine all arguments
+    all_args = args + varargs
 
-    varargs = kwargs.pop(argspec[1], kwargs.pop("args", varargs))
-    if argspec[1] is None:
-        varargs = []
-    elif len(kargs) > len(args):
-        varargs = kargs[len(args) :]
-    elif varargs == [] and "args" in kkeys:
-        varargs = list(kwargs.values())
-
-    varkw = {}
-    if argspec[2] is not None:
-        varkw = kwargs
-
-    if varargs != []:
-        # If args is not empty, try to parse
-        if (
-            isinstance(varargs, (list, tuple, np.ndarray))
-            and len(varargs) == 1
-        ):
-            varargs = varargs[0]
-        if isinstance(varargs, int):
-            sign = int(-varargs / abs(varargs))
-            varargs = [
-                sp.symbols(f"C_{a+sign}", real=True)
-                for a in range(varargs, 0, sign)
-            ]
-        elif isinstance(varargs, str):
-            varargs = [sp.symbols(a, real=True) for a in varargs.split(" ")]
-        elif isinstance(varargs, (list, tuple, np.ndarray)):
-            varargs = [sp.symbols(str(a), real=True) for a in varargs]
-        elif isinstance(varargs, (dict)):
-            varargs = [sp.symbols(str(a), real=True) for a in varargs.values()]
-
-    expr = func(*args, *varargs, **kwonlyargs, **varkw)
-    if not hasattr(expr, "free_symbols"):
-        return expr
-    res_dict = {
-        a: eval(str(a))
-        for a in expr.free_symbols
-        if not bool(
-            re.findall(
-                "[a-df-zA-DF-Z\\\\@!&^]|^[/eE]|[/eE]$|^\\..+\\.$", str(a)
-            )
-        )
-    }
-    res = expr.subs(res_dict)
-    if isinstance(res, sp.Number):
-        return float(res)
-    return res
-
+    # Evaluate the function with sympy symbols
+    expr = func(*all_args, **kwonlyargs)
+    return expr
 
 def solve_for_variable(
     func, target=None, dep_var="res", res_form="res", **kwargs
@@ -216,7 +307,7 @@ def solve_for_variable(
     Call sympy to solve for the target variable.
 
     Uses sympy to rework the function, solving for a new variable. Requires the input function to
-    use sympy compatable functions. i.e. use sp.sqrt vice np.sqrt.  Any non-sympy functions must
+    use sympy compatible functions. i.e. use sp.sqrt vice np.sqrt. Any non-sympy functions must
     not contain a variable.
 
     Parameters
@@ -226,14 +317,15 @@ def solve_for_variable(
     func : function
         callable function to be converted
     dep_var : str, sympy.Symbol
-        name/symbol of the dependant variable/solution
+        name/symbol of the dependent variable/solution
     res_form : str
-        Name of requested ouptut.
+        Name of requested output.
         Options :
             expr : result of function with sympy variables
             eqn : sympy.Eq of dep_var and expr
             res_set : sympy.solveset of eqn solved for target
             res : expression of res_set
+            num : numerical value if available, returns res otherwise
     kwargs :
         Dictionary of any additional function arguments
 
@@ -243,10 +335,15 @@ def solve_for_variable(
         requested value
     """
     if callable(func):
-        expr = function_to_expr(func, **kwargs)
-
+        expr = function_to_expr(func)
     elif isinstance(func, sp.Basic):
         expr = func
+    else:
+        expr = None
+
+    # Substitute symbols with their evaluated values
+    if kwargs:
+        expr = expr.subs(extract_variables(expr, kwargs))
 
     if res_form.lower() == "expr" or not isinstance(expr, sp.Basic):
         return expr
@@ -265,10 +362,63 @@ def solve_for_variable(
     res = res_set.args
     if len(res) > 0:
         res = res[0]
+
+    # Secondary substitution to get numeric result
+    if kwargs:
+        res = res.subs(extract_variables(res, kwargs))
+    
+    num = res
+    try:
+        num = float(num)
+    except TypeError:
+        pass
+
     try:
         return vars()[res_form]
     except KeyError:
         return res
+    
+def extract_variables(expr, targets):
+    """
+    Extract variables from an expression based on a list/tuple/dict of target variable names.
+
+    Parameters
+    ----------
+    expr : sympy.Expr
+        The sympy expression from which to extract variables.
+    targets : list, tuple, or dict
+        The target variable names to extract from the expression.
+
+    Returns
+    -------
+    extracted_vars : list
+        A list of extracted sympy symbols corresponding to the target variable names.
+    """
+    if isinstance(targets, (list, tuple)):
+        res = []
+        for targ in targets:
+            val = extract_variable(expr, targ)
+            if not val:
+                continue
+            if isinstance(val, list):
+                res += val
+            else:
+                res.append(val)
+
+        return res
+    elif isinstance(targets, dict):
+        res = {}
+        for targ, sub_val in targets.items():
+            val = extract_variable(expr, targ)
+            if not val:
+                continue
+            if isinstance(val, list):
+                res[val[0]] = sub_val
+            else:
+                res[val] = sub_val
+        return res
+    else:
+        raise TypeError("Targets must be a list, tuple, or dict of variable names.")
 
 
 def create_function(func, targ, var=None, cost=None, **kwargs):
@@ -308,9 +458,11 @@ def create_function(func, targ, var=None, cost=None, **kwargs):
 
     if callable(func):
         expr = function_to_expr(func)
-
     elif isinstance(func, sp.Basic):
         expr = func
+    else:
+        expr = None
+        
 
     args = {}
 
@@ -361,10 +513,13 @@ def extract_arguments(func, method="str", **kwargs):
     res : varied
         requested value
     """
+
     if callable(func):
         expr = function_to_expr(func)
     elif isinstance(func, sp.Basic):
         expr = func
+    else:
+        expr = None
 
     ignore = kwargs.pop("ignore", ["kwargs", "args"])
     if not isinstance(ignore, (list, tuple)):
@@ -527,9 +682,7 @@ def get_const(name, symbolic=False, unit=None):
         e0 : "farad", "cm"
         boltzmann : "eV", "K"
 
-
-    Parameters
-    ----------
+    Parameters:
     name : str
         The name of the constant as provided by sympy
     unit : list, optional
@@ -537,8 +690,7 @@ def get_const(name, symbolic=False, unit=None):
     symbolic : bool
         Expressly stipulates whether units should be returned with the value
 
-    Returns
-    -------
+    Returns:
     const : [float, sympy.unit.Quantity]
         requested value
     """
@@ -577,6 +729,16 @@ def get_const(name, symbolic=False, unit=None):
 
 
 def parse_constant(const, unit_system="SI"):
+    """
+    Parse a physical constant and convert it to the specified unit system.
+
+    Parameters:
+    const (su.quantities.PhysicalConstant): The physical constant to be parsed.
+    unit_system (str or su.systems.UnitSystem): The unit system to convert to. Default is "SI".
+
+    Returns:
+    su.Quantity: The converted physical constant.
+    """
     if not isinstance(const, su.quantities.PhysicalConstant):
         return const
     dims = [getattr(su, str(d)) for d in const.dimension.atoms(sp.Symbol)]
@@ -588,6 +750,16 @@ def parse_constant(const, unit_system="SI"):
 
 
 def parse_unit(expr, unit_system="SI"):
+    """
+    Parse an expression and convert its units to the specified unit system.
+
+    Parameters:
+    expr (sp.Basic): The expression to be parsed.
+    unit_system (str or su.systems.UnitSystem): The unit system to convert to. Default is "SI".
+
+    Returns:
+    tuple: A tuple containing the unitless part of the expression and the units.
+    """
     if isinstance(expr, sp.Number) or not isinstance(expr, sp.Basic):
         return float(expr)
     if isinstance(unit_system, str):

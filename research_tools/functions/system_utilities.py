@@ -6,6 +6,7 @@ Created on Wed Apr 11 17:05:01 2018.
 
 General function file
 """
+
 # Standard library imports
 import configparser
 import ctypes
@@ -40,6 +41,7 @@ config file -> ini or toml file with default values, particularly for paths
 
 class -> interfaces with config file. Would only need to be called to access or update config.  Would not need to be in init.
 """
+
 
 # %% Path resolving functions
 def pathify(*dir_in, target=None):
@@ -86,10 +88,7 @@ def pathify(*dir_in, target=None):
     for n in range(len(cwd.split(sep)) - 1):
         if top_dir.lower() in cwd.split(sep)[n].lower() and root_dir is None:
             root_dir = sep.join(cwd.split(sep)[:n])
-        if (
-            top_dir.lower() in cwd.split(sep)[n].lower()
-            and sub_dir == cwd.split(sep)[n + 1]
-        ):
+        if top_dir.lower() in cwd.split(sep)[n].lower() and sub_dir == cwd.split(sep)[n + 1]:
             result[top_dir] = sep.join(cwd.split(sep)[: n + 1])
             result[sub_dir] = sep.join(cwd.split(sep)[: n + 2])
             if sep in folder:
@@ -110,13 +109,8 @@ def pathify(*dir_in, target=None):
         exact = False
         for dirpaths, dirnames, _ in os.walk(os.path.abspath(root_dir)):
             exact_dir = np.array(dirnames)[[sub_dir == item for item in dirnames]]
-            approx_dir = np.array(dirnames)[
-                [sub_dir.lower() in item.lower() for item in dirnames]
-            ]
-            if (
-                top_dir.lower() in dirpaths.split(sep)[-1].lower()
-                and len(exact_dir) > 0
-            ):
+            approx_dir = np.array(dirnames)[[sub_dir.lower() in item.lower() for item in dirnames]]
+            if top_dir.lower() in dirpaths.split(sep)[-1].lower() and len(exact_dir) > 0:
                 exact_top.append(dirpaths)
                 exact_sub.append(exact_dir.tolist())
                 exact = True
@@ -268,19 +262,14 @@ def my_walk(path, res_type=None, recursive=True, ignore=None, ignore_hidden=True
       in case of inaccessible or invalid directories.
     """
     try:
-
         if isinstance(ignore, (list, np.ndarray)) and len(ignore) > 0:
             ignore_list = ignore
-            ignore = (
-                lambda var: var.path in ignore_list or Path(var.path) in ignore_list
-            )
+            ignore = lambda var: var.path in ignore_list or Path(var.path) in ignore_list
         elif not callable(ignore):
             ignore = lambda var: False
 
         for x in os.scandir(Path(path)):
-            if (
-                ignore_hidden and (x.name.startswith(".") or x.name.startswith("$"))
-            ) or ignore(x):
+            if (ignore_hidden and (x.name.startswith(".") or x.name.startswith("$"))) or ignore(x):
                 continue
             elif x.is_dir(follow_symlinks=False):
                 if not res_type or "dir" in res_type.lower():
@@ -516,19 +505,32 @@ def find_path(*dir_in, base=None, as_list=False, by_re=True, by_glob=False, **kw
                     break
         return path1
 
-    drives = []
+    drives = find_drives(exclude_nonlocal=True, exclude_hidden=True, **kwargs)
+    for d in drives:
+        if dir_in[0] in str(d):
+            dir_in[0] = str(d)
+            break
 
-    # Get base path, if string it should either be the path, home, or cwd
-    if isinstance(base, str):
+    dir_in_parents = list(Path(*dir_in).parents)
+    n = 1
+    while dir_in_parents[-n].exists() and n < len(dir_in) - 1:
+        n += 1
+
+    if dir_in[0] in drives and n > 1:
+        # if the first directory is a drive and there are multiple directories, use the n-th parent as it's likely more accurate as a base
+        base = dir_in_parents[-n]
+    elif isinstance(base, str):
+        # if base is a string, it is likely a keyword signaling a particular base
         if base.lower() in ["local", "caller", "argv", "sys.argv"]:
+            # each of these options are assuming the base is the directory of the calling script
             base = Path(sys.argv[0]).resolve().parent
         elif "drive" in base.lower():
-            drives = find_drives(exclude_nonlocal=True, exclude_hidden=True, **kwargs)
+            # The base is a drive, check if dir in is one level down
             base_path = [p for d in drives for p in d.glob("*/" + str(Path(*dir_in)))]
+            # Otherwise, check if dir in is two levels down
             if base_path == []:
-                base_path = [
-                    p for d in drives for p in d.glob("*/*/" + str(Path(*dir_in)))
-                ]
+                base_path = [p for d in drives for p in d.glob("*/*/" + str(Path(*dir_in)))]
+
             if base_path == []:
                 base = None
             else:
@@ -536,8 +538,10 @@ def find_path(*dir_in, base=None, as_list=False, by_re=True, by_glob=False, **kw
                 base = base_path[0]
 
         else:
+            # it's possible that the base is an attribute of the Path class
             base = getattr(Path, base)() if hasattr(Path, base) else Path(base)
     if base is None or not isinstance(base, Path) or not base.exists():
+        # if base has not been resolved, use the Documents folder of the home directory
         base = Path.home() / "Documents"
 
     # if there may be overlap, shrink base path until there isn't overlap
@@ -570,9 +574,7 @@ def find_path(*dir_in, base=None, as_list=False, by_re=True, by_glob=False, **kw
         paths = [p for b in bases for p in b.glob("*/" + str(Path(*dir_in)))]
     if by_re or not by_glob:
         for b in bases:
-            paths = paths + find_files(
-                b, "path", res_type, Path(*dir_in).parts, recursive=False
-            )
+            paths = paths + find_files(b, "path", res_type, Path(*dir_in).parts, recursive=False)
 
     # if paths are not found, do a recursive search
     n = 0
@@ -664,9 +666,8 @@ def find_files(
             except re.error:
                 continue
         # compiled_patterns = [re.compile(pattern) ]
-        f_filter = lambda x: all(
-            pattern.search(str(x)) for pattern in compiled_patterns
-        )
+        # compiled_patterns = [re.compile(pattern) for pattern in patterns]
+        f_filter = lambda x: all(pattern.search(str(x)) for pattern in compiled_patterns)
     else:
         f_filter = lambda x: True  # No-op lambda, always returns True
         yield_first_match = False  # If no patterns, always return all matches
@@ -711,11 +712,7 @@ def slugify(value, allow_unicode=False, sep="-"):
     if allow_unicode:
         value = unicodedata.normalize("NFKC", value)
     else:
-        value = (
-            unicodedata.normalize("NFKD", value)
-            .encode("ascii", "ignore")
-            .decode("ascii")
-        )
+        value = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
     value = re.sub(r"[^\w\s-]", "", value.lower())
     # return re.sub(r"[-\s]+", "-", value).strip("-_")
     return re.sub(r"[-\s]+", sep, value).strip("-_")
@@ -725,12 +722,10 @@ def save(data, path=None, name=None, ftype="xls", **kwargs):
     """Save data into excel file."""
     path = Path(path)
     if path is None:
-        #TODO convert to home path
+        # TODO convert to home path
         path = find_path(
             "Data", "Analysis", "Auto", base=find_path(r"ASU Dropbox", base="drive")
-        ) / dt.now().strftime(
-            "%Y%m%d"
-        )
+        ) / dt.now().strftime("%Y%m%d")
     if name is None:
         name = "data_" + dt.now().strftime("%H_%M")
     if not os.path.exists(path):
@@ -832,6 +827,7 @@ def load_file(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
         return [load_file(f, None, pdkwargs, hdfkwargs, **kwargs) for f in filelist]
     return data, attrs
 
+
 def load(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
     """
     Depreciated. Use load_file instead.
@@ -840,6 +836,29 @@ def load(file, path=None, pdkwargs=None, hdfkwargs=None, **kwargs):
 
 
 def load_hdf(file, path=None, target="/", key_sep=False, **kwargs):
+    """
+    Loads data from an HDF5 file and returns it as dictionaries.
+
+    This function reads an HDF5 file and extracts datasets and attributes into
+    dictionaries. It allows for optional path resolution and filtering based on
+    a target string.
+
+    Parameters:
+    file (str or Path): The name or path of the HDF5 file to be loaded.
+    path (str, Path, or list, optional): The directory path where the file is located.
+        If a list is provided, the function will search for the file in the specified paths.
+        If None, the current working directory is used. Default is None.
+    target (str, optional): A string to filter the datasets and attributes to be extracted.
+        Only items containing the target string in their name will be included. Default is "/".
+    key_sep (bool, optional): If True, the keys in the returned dictionaries will be separated into nested dictionaries
+        based on the '/' character. Default is False.
+    **kwargs: Additional keyword arguments to be passed to the h5py.File visititems method.
+
+    Returns:
+    tuple: A tuple containing two dictionaries:
+           - ds_dict: A dictionary where keys are dataset names and values are the dataset contents.
+           - attr_dict: A dictionary where keys are attribute names and values are the attribute contents.
+    """
     if isinstance(path, list):
         path = find_path(path)
     if isinstance(path, Path):
@@ -850,7 +869,12 @@ def load_hdf(file, path=None, target="/", key_sep=False, **kwargs):
     def get_ds_dictionaries(name, node):
         if target in name:
             if isinstance(node, h5py.Dataset):
-                ds_dict[node.name] = np.array(node[()])
+                if "void" in node.dtype.name:
+                    ds_dict[node.name] = {
+                        k: np.array(node.fields(k)).item() for k in node.dtype.names
+                    }
+                else:
+                    ds_dict[node.name] = np.array(node[()])
             if any(node.attrs):
                 for key, val in node.attrs.items():
                     attr_dict[node.name + "/" + key] = val
@@ -909,9 +933,7 @@ def get_config(file, sections=None, **kwargs):
             config_file = {}
             for sec in cp.sections():
                 config_file[sec] = get_config(file, sections=[sec])
-                config_file[sec] = {
-                    k: kwargs.get(k, v) for k, v in config_file[sec].items()
-                }
+                config_file[sec] = {k: kwargs.get(k, v) for k, v in config_file[sec].items()}
             return config_file
         sections = [sections]
 
@@ -925,14 +947,11 @@ def get_config(file, sections=None, **kwargs):
         ]
     if checked_sec == []:
         checked_sec = [cp.sections()[0]]
-    config_file = {
-        k: eval_string(v) for sc in checked_sec for k, v in dict(cp.items(sc)).items()
-    }
+    config_file = {k: eval_string(v) for sc in checked_sec for k, v in dict(cp.items(sc)).items()}
     included = []
     if "include_sections" in config_file.keys():
         included = [
-            get_config(file, [sec])
-            for sec in config_file.pop("include_sections").split(", ")
+            get_config(file, [sec]) for sec in config_file.pop("include_sections").split(", ")
         ]
         for inc in included:
             config_file = {**config_file, **inc}
@@ -994,9 +1013,7 @@ class PickleJar:
 
     def __getitem__(self, name):
         """Calculate. generic discription."""
-        if isinstance(name, (int, np.integer, float)) and int(name) < len(
-            self.database
-        ):
+        if isinstance(name, (int, np.integer, float)) and int(name) < len(self.database):
             name = self.database[int(name)]
         else:
             name = slugify(name)
@@ -1044,8 +1061,7 @@ class PickleJar:
         if isinstance(value, dict):
             [self.pickler((key, val)) for key, val in value.items()]
         elif (
-            isinstance(value, (tuple, list, np.ndarray, pd.Series))
-            and len(np.array(value)[0]) == 2
+            isinstance(value, (tuple, list, np.ndarray, pd.Series)) and len(np.array(value)[0]) == 2
         ):
             [self.pickler(val) for val in value]
         else:
@@ -1076,5 +1092,9 @@ class PickleJar:
             res = res[res.str.contains(val)]
         return res
 
-# if __name__ == "__main__":
-#     # Testing section
+
+if __name__ == "__main__":
+    # Testing section
+    res = find_path(
+        r"C:\Users\j2cle\Documents\Python\research_tools\research_tools\functions\added_cmaps\kindlmann"
+    )

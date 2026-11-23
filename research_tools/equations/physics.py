@@ -10,6 +10,7 @@ General function file
 
 import numpy as np
 import sympy as sp
+from typing import Union, Optional, Tuple, List
 
 from ..functions import (
     get_const,
@@ -23,8 +24,20 @@ from .general import inv_sum_invs, erfc
 
 
 # %% Electrical
-def capacitance(epsilon_r, A, L, **kwargs):
-    """Calculate. generic discription."""
+def capacitance(epsilon_r: float, A: float, L: float, **kwargs) -> float:
+    """
+    Calculate capacitance.
+    EQ: C = (ε_r * ε_0 * A) / L
+    
+    Args:
+        epsilon_r (float): Relative permittivity.
+        A (float): Area (cm²).
+        L (float): Length (cm).
+        **kwargs: Additional arguments.
+    
+    Returns:
+        float: Capacitance (F).
+    """
     arg_in = vars().copy()
     epsilon_0 = kwargs.get("vacuum_permittivity", None)
     if epsilon_0 is None:
@@ -37,20 +50,52 @@ def capacitance(epsilon_r, A, L, **kwargs):
     return res
 
 
-def resistance(rho, A, L):
-    """Calculate resistance from the resistivity and system dimensions."""
+def resistance(rho: float, A: float, L: float) -> float:
+    """
+    Calculate resistance.
+    EQ: R = (ρ * L) / A
+    
+    Args:
+        rho (float): Resistivity (ohm·cm).
+        A (float): Area (cm²).
+        L (float): Length (cm).
+    
+    Returns:
+        float: Resistance (ohm).
+    """
     res = rho * L / A
     return res
 
 
-def ohms_law(V, R):
-    """Calculate current from Ohms Law."""
+def ohms_law(V: float, R: float) -> float:
+    """
+    Calculate current from Ohm's Law.
+    EQ: I = V / R
+    
+    Args:
+        V (float): Voltage (V).
+        R (float): Resistance (ohm).
+    
+    Returns:
+        float: Current (A).
+    """
     res = V / R
     return res
 
 
-def voltage_divider(R, V=1, R0=1):
-    """Calculate the component voltage from the voltage devider."""
+def voltage_divider(R: Union[dict, list, tuple, np.ndarray], V: float = 1, R0: float = 1) -> float:
+    """
+    Calculate the component voltage from the voltage divider.
+    EQ: V_out = V * (R0 / (R_total))
+    
+    Args:
+        R (dict, list, tuple, np.ndarray): Resistances.
+        V (float, optional): Voltage (V). Default is 1.
+        R0 (float, optional): Reference resistance. Default is 1.
+    
+    Returns:
+        float: Component voltage (V).
+    """
     if isinstance(R, dict):
         Rt = sum(R.values())
         R0 = R.get(R0, R0)
@@ -67,8 +112,19 @@ def voltage_divider(R, V=1, R0=1):
     return res
 
 
-def sheet_resistivity(doping, thickness, dopant=None):
-    """Calculate the sheet resistivity from doping."""
+def sheet_resistivity(doping: float, thickness: float, dopant: Optional[str] = None) -> float:
+    """
+    Calculate the sheet resistivity from doping.
+    EQ: ρ_sheet = 1 / (q * doping * mobility * thickness)
+    
+    Args:
+        doping (float): Doping concentration (cm⁻³).
+        thickness (float): Thickness (cm).
+        dopant (str, optional): Dopant type.
+    
+    Returns:
+        float: Sheet resistivity (ohm/sq).
+    """
     arg_in = vars().copy()
     if dopant is not None:
         mob = mobility_masetti(doping, dopant)
@@ -84,13 +140,20 @@ def sheet_resistivity(doping, thickness, dopant=None):
     return res
 
 
-def conductivity(n, p, ue, uh):
-    """Return the conductivity of a material(siemens)
-    Where:
-    n - concentration of electrons (cm-3)
-    p - concentration of holes (cm-3)
-    ue - electron mobility (cm²/Vs)
-    uh - hole mobility (cm²/Vs)"""
+def conductivity(n: float, p: float, ue: float, uh: float) -> float:
+    """
+    Calculate the conductivity of a material.
+    EQ: σ = q * (ue * n + uh * p)
+    
+    Args:
+        n (float): Electron concentration (cm⁻³).
+        p (float): Hole concentration (cm⁻³).
+        ue (float): Electron mobility (cm²/Vs).
+        uh (float): Hole mobility (cm²/Vs).
+    
+    Returns:
+        float: Conductivity (S/cm).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -101,9 +164,17 @@ def conductivity(n, p, ue, uh):
     return res
 
 
-def resistivity_Si_n(Ndonor):
-    """Return the resistivity of n-type silicon (ohm cm)
-    given the doping of donors(cm-3)"""
+def resistivity_Si_n(Ndonor: float) -> float:
+    """
+    Calculate the resistivity of n-type silicon.
+    EQ: ρ = 1 / (q * (μ_n * N_donor + μ_p * n_minority))
+    
+    Args:
+        Ndonor (float): Donor concentration (cm⁻³).
+    
+    Returns:
+        float: Resistivity (ohm·cm).
+    """
     arg_in = vars().copy()
     n_minority = ni_Si() ** 2 / Ndonor
 
@@ -119,9 +190,17 @@ def resistivity_Si_n(Ndonor):
     return res
 
 
-def resistivity_Si_p(Nacceptor):
-    """Return the resistivity of p-type silicon (ohm cm)
-    given the doping of acceptors(cm-3)"""
+def resistivity_Si_p(Nacceptor: float) -> float:
+    """
+    Calculate the resistivity of p-type silicon.
+    EQ: ρ = 1 / (q * (μ_p * N_acceptor + μ_n * n_minority))
+    
+    Args:
+        Nacceptor (float): Acceptor concentration (cm⁻³).
+    
+    Returns:
+        float: Resistivity (ohm·cm).
+    """
     arg_in = vars().copy()
     n_minority = ni_Si() ** 2 / Nacceptor
 
@@ -136,9 +215,19 @@ def resistivity_Si_p(Nacceptor):
     return res
 
 
-def resistivity(N, dopant, W):
-    """Return the resistivity of p-type silicon (ohm cm)
-    given the doping of acceptors(cm-3)"""
+def resistivity(N: float, dopant: str, W: float) -> float:
+    """
+    Calculate the resistivity of silicon.
+    EQ: ρ = 1 / (q * μ * N * W)
+    
+    Args:
+        N (float): Doping concentration (cm⁻³).
+        dopant (str): Dopant type.
+        W (float): Width (cm).
+    
+    Returns:
+        float: Resistivity (ohm·cm).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -148,9 +237,17 @@ def resistivity(N, dopant, W):
 
 
 # %% Semiconductors
-def v_thermal(T=298.15):
-    """Return thermal voltage (volts) at given temperature, T(Kelvin).
-    The default temperature is 298.15 K, which is equal to 25 °C"""
+def v_thermal(T: float = 298.15) -> float:
+    """
+    Calculate thermal voltage.
+    EQ: V_th = k_B * T
+    
+    Args:
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Thermal voltage (V).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -159,8 +256,20 @@ def v_thermal(T=298.15):
     return res
 
 
-def depletion_region(Na, Nd, T=298.15):
-    """Find thickness of doped layers based on doping"""
+def depletion_region(Na: float, Nd: float, T: float = 298.15) -> Tuple[float, float]:
+    """
+    Calculate depletion region thickness.
+    EQ: x_n = sqrt((2 * ε_0 * ε_r * V_bi * Nd) / (q * Na * (Na + Nd)))
+        x_p = sqrt((2 * ε_0 * ε_r * V_bi * Na) / (q * Nd * (Na + Nd)))
+    
+    Args:
+        Na (float): Acceptor concentration (cm⁻³).
+        Nd (float): Donor concentration (cm⁻³).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        tuple: Thicknesses (cm).
+    """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, depletion_region)
     if lam_res:
@@ -183,9 +292,19 @@ def depletion_region(Na, Nd, T=298.15):
     return xn, xp
 
 
-def probability_fermi_dirac(E, Ef, T=298.15):
-    """Return the fermi dirac function (units) where E is the energy (),
-    Ef is the fermi given the energies in electron volts"""
+def probability_fermi_dirac(E: float, Ef: float, T: float = 298.15) -> float:
+    """
+    Calculate Fermi-Dirac probability.
+    EQ: f(E) = 1 / (exp((E - Ef) / (k_B * T)) + 1)
+    
+    Args:
+        E (float): Energy (eV).
+        Ef (float): Fermi energy (eV).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Probability.
+    """
     arg_in = vars().copy()
     nsp = pick_math_module(arg_in)
     w_units = has_units(arg_in)
@@ -196,8 +315,19 @@ def probability_fermi_dirac(E, Ef, T=298.15):
     return res
 
 
-def probability_maxwell_boltzmann(E, Ef, T=298.15):
-    """Given the energies in electron volts return the fermi dirac function"""
+def probability_maxwell_boltzmann(E: float, Ef: float, T: float = 298.15) -> float:
+    """
+    Calculate Maxwell-Boltzmann probability.
+    EQ: f(E) = exp(-(E - Ef) / (k_B * T))
+    
+    Args:
+        E (float): Energy (eV).
+        Ef (float): Fermi energy (eV).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Probability.
+    """
     arg_in = vars().copy()
     nsp = pick_math_module(arg_in)
     w_units = has_units(arg_in)
@@ -207,8 +337,19 @@ def probability_maxwell_boltzmann(E, Ef, T=298.15):
     return res
 
 
-def probability_bose_einstein(E, Ef, T=298.15):
-    """Given the energies in electron volts return the fermi dirac function"""
+def probability_bose_einstein(E: float, Ef: float, T: float = 298.15) -> float:
+    """
+    Calculate Bose-Einstein probability.
+    EQ: f(E) = 1 / (exp((E - Ef) / (k_B * T)) - 1)
+    
+    Args:
+        E (float): Energy (eV).
+        Ef (float): Fermi energy (eV).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Probability.
+    """
     arg_in = vars().copy()
     nsp = pick_math_module(arg_in)
     w_units = has_units(arg_in)
@@ -219,24 +360,42 @@ def probability_bose_einstein(E, Ef, T=298.15):
     return res
 
 
-def equilibrium_carrier(doping, **kwargs):
+def equilibrium_carrier(doping: float, **kwargs) -> Tuple[float, float]:
     """
-    Return the majority and minority carrier concentrations (cm-3) of a semiconductor at equilibrium
-    where N is the doping level (cm-3) and ni is the intrinsic carrier concentratoin (cm-3)
-    Strictly N and ni just have to be in the same units but (cm-3 is almost always used.
+    Calculate equilibrium carrier concentrations.
+    EQ: carrier = doping / (ni^2)
+    
+    Args:
+        doping (float): Doping concentration (cm⁻³).
+        **kwargs: Additional arguments.
+    
+    Returns:
+        tuple: Majority and minority carrier concentrations (cm⁻³).
+    
+    Note:
+        Strictly speaking N and ni just have to be in the same units but (cm-3 is almost always used.
     """
     ni = kwargs.get("ni", ni_Si(kwargs.get("T", 298.15)))
     carrier = doping / (ni**2)
     return max(doping, carrier), min(doping, carrier)
 
 
-def ni_Si(T=298.15, narrowing=True):
-    """Return the intrinsic carrier concentration of silicon (cm**-3) according to Sproul94.
-    where T is the temperature (K)
-    http://dx.doi.org/10.1063/1.357521
-    Return the intrinsic carrier concentration (cm-3) without band gap narrowing
-    according to Misiakos, where T is the temperature (K).
-    DOI http://dx.doi.org/10.1063/1.354551
+def ni_Si(T: float = 298.15, narrowing: bool = True) -> float:
+    """
+    Calculate intrinsic carrier concentration of silicon.
+    EQ: ni = 9.38e19 * (T / 300)^2 * exp(-6884 / T) (with narrowing)
+        ni = 5.29e19 * (T / 300)^2.54 * exp(-6726 / T) (without narrowing)
+    
+    Args:
+        T (float, optional): Temperature (K). Default is 298.15.
+        narrowing (bool, optional): Band gap narrowing. Default is True.
+    
+    Returns:
+        float: Intrinsic carrier concentration (cm⁻³).
+
+    Notes:
+        With narrowing calculates according to Sproul94 http://dx.doi.org/10.1063/1.357521
+        Without narrowing calculates according to Misiakos93 http://dx.doi.org/10.1063/1.354551
     """
     arg_in = vars().copy()
     nsp = pick_math_module(arg_in)
@@ -247,14 +406,22 @@ def ni_Si(T=298.15, narrowing=True):
     return res
 
 
-def ni_eff(N_D, N_A, delta_n, T=298.15):
-    """Return effective ni (cm-3)
-    given
-    donor concentration N_D=n0 (1/cm³)      only one dopant type possible
-    acceptor concentration N_A=p0 (1/cm³)    only one dopant type possible
-    excess carrier density (1/cm³)
-    temperature (K)
-    calculation of the effective intrinsic concentration n_ieff including BGN
+def ni_eff(N_D: float, N_A: float, delta_n: float, T: float = 298.15) -> float:
+    """
+    Calculate effective intrinsic carrier concentration.
+    EQ: ni_eff = ni0 * exp((dEc + dEv) / (2 * k_B * T))
+    
+    Args:
+        N_D (float): Donor concentration (cm⁻³).
+        N_A (float): Acceptor concentration (cm⁻³).
+        delta_n (float): Excess carrier density (cm⁻³).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Effective intrinsic carrier concentration (cm⁻³).
+    
+    Notes:
+        calculation of the effective intrinsic concentration n_ieff including BGN
     according to Altermatt JAP 2003
     """
     arg_in = vars().copy()
@@ -292,11 +459,19 @@ def ni_eff(N_D, N_A, delta_n, T=298.15):
     return ni
 
 
-def bandgap_paessler(T=298.15):
-    """Return the bandgap of silicon (eV) according to Paessler2002,
-    where T is the temperature (K).
-    Code adapted from Richter Fraunhofer ISE
-    https://doi.org/10.1103/PhysRevB.66.085201
+def bandgap_paessler(T: float = 298.15) -> float:
+    """
+    Calculate bandgap of silicon.
+    EQ: Eg0 = Eg0_T0 - α * θ * ((1 - 3 * δ^2) / (exp(θ / T) - 1) + 3 / 2 * δ^2 * (wurzel - 1))
+    
+    Args:
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Bandgap (eV).
+    
+    Notes:
+        Calculation according to Paessler2001, Code adapted from Richter at Fraunhofer ISE https://doi.org/10.1103/PhysRevB.66.085201
     """
     arg_in = vars().copy()
     nsp = pick_math_module(arg_in)
@@ -326,29 +501,33 @@ def bandgap_paessler(T=298.15):
     return Eg0
 
 
-def bandgap_schenk(n_e, n_h, N_D, N_A, delta_n, T=298.15):
+def bandgap_schenk(n_e: float, n_h: float, N_D: float, N_A: float, delta_n: float, T: float = 298.15) -> Tuple[float, float]:
     """
-    returns the band gap narowing in silicon
-    delta conduction band, delta valence band in eV
-    given:
+    Calculate bandgap narrowing in silicon.
+    EQ: dE_gap = -Ry_ex * (delta_xc + delta_i)
+    
+    Args:
+        n_e (float): Electron density (cm⁻³).
+        n_h (float): Hole density (cm⁻³).
+        N_D (float): Donor concentration (cm⁻³).
+        N_A (float): Acceptor concentration (cm⁻³).
+        delta_n (float): Excess carrier density (cm⁻³).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        tuple: Bandgap narrowing (eV).
 
-    n_e => total electron density with delta_n (1/cm³)
-    n_h => total hole density with delta_n (1/cm³)
-    N_A => acceptor concentration (1/cm³)
-    N_D => donor concentration (1/cm³)
-    delta_n  => excess carrier density (1/cm³)
-    T   => temperature (K)
+    Notes:
+        Band-gap narrowing after Schenk 1998, JAP 84(3689))
+        model descriped very well in K. McIntosh IEEE PVSC 2010
+        model confirmed by Glunz2001 & Altermatt2003
+        nomenclatur and formula no. according to McIntosh2010, table no. according to Schenk1998
+        ==========================================================================
+        Input parameters:
 
-    Band-gap narrowing after Schenk 1998, JAP 84(3689))
-    model descriped very well in K. McIntosh IEEE PVSC 2010
-    model confirmed by Glunz2001 & Altermatt2003
-    nomenclatur and formula no. according to McIntosh2010, table no. according to Schenk1998
-    ==========================================================================
-    Input parameters:
-
-    ==========================================================================
-    Code adapted from Richter at Fraunhofer ISE
-    http://dx.doi.org/10.1063%2F1.368545
+        ==========================================================================
+        Code adapted from Richter at Fraunhofer ISE
+        http://dx.doi.org/10.1063%2F1.368545
     """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, bandgap_schenk)
@@ -471,18 +650,32 @@ def bandgap_schenk(n_e, n_h, N_D, N_A, delta_n, T=298.15):
 
 
 # %%  Mobilities
-def mobility_generic(N, dopant):
-    """Return the mobility of carriers in silicon according to
-    the model of Thurbur as a function of doping
-    Where:
-    N - doping level (cm-3)
-    Data is included for specific dopant values as given in mini-project 3
-    https://archive.org/details/relationshipbetw4006thur"""
-    if "A" in dopant:
-        umin = 52.2
-        umax = 1417
-        Nref = 9.68e16
-        a = 0.68
+def mobility_generic(N: float, dopant: str) -> float:
+    """
+    Calculate carrier mobility in silicon.
+    EQ: μ = umin + (umax - umin) / (1 + (N / Nref)^a)
+    
+    Args:
+        N (float): Doping concentration (cm⁻³).
+        dopant (str): Dopant type.
+    
+    Returns:
+        float: Mobility (cm²/Vs).
+        
+    Notes:
+        Return the mobility of carriers in silicon according to
+        the model of Thurbur as a function of doping
+        Where:
+        N - doping level (cm-3)
+        Data is included for specific dopant values as given in mini-project 3
+        https://archive.org/details/relationshipbetw4006thur
+    
+    """ 
+    # if "A" in dopant:
+    umin = 52.2
+    umax = 1417
+    Nref = 9.68e16
+    a = 0.68
     if "P" in dopant:
         umin = 68.5
         umax = 1414
@@ -496,14 +689,24 @@ def mobility_generic(N, dopant):
     return umin + (umax - umin) / (1 + ((N / Nref) ** a))
 
 
-def mobility_thurber(N, p_type=True, majority=True):
-    """Return the mobility of carriers in silicon according to the model of Thurbur
-    as a function of doping
-    Where:
-    N - doping level (cm-3)
-    p_type is True or 1 for p doped material and False or 0 for n-type.
-    majority is True or 1 for majority carriers and False or 0 for minority carriers.
-    https://archive.org/details/relationshipbetw4006thur"""
+def mobility_thurber(N: float, p_type: bool = True, majority: bool = True) -> float:
+    """
+    Calculate carrier mobility using Thurber model.
+    EQ: μ = umin + (umax - umin) / (1 + (N / Nref)^a)
+    
+    Args:
+        N (float): Doping concentration (cm⁻³).
+        p_type (bool, optional): p-type material. Default is True.
+        majority (bool, optional): Majority carriers. Default is True.
+    
+    Returns:
+        float: Mobility (cm²/Vs).
+
+    Notes:
+        Return the mobility of carriers in silicon according to the model of Thurbur
+        as a function of doping
+        https://archive.org/details/relationshipbetw4006thur
+    """
     i = 2 * p_type + majority
     # n-type minority, n-type majority, p-type minority, p-type majority
     umax = [1417, 1417, 470, 470][i]
@@ -513,17 +716,30 @@ def mobility_thurber(N, p_type=True, majority=True):
     return umin + (umax - umin) / (1 + ((N / Nref) ** a))
 
 
-def mobility_masetti(N, dopant=0):
-    """mobility model from Masetti
-    DOI: 10.1109/T-ED.1983.21207"""
-    if dopant == 0:
-        µmax = 1414
-        µmin = 68.5
-        u1 = 56.1
-        Nref1 = 9.20e16
-        Nref2 = 3.41e20
-        a = 0.711
-        b = 1.98
+def mobility_masetti(N: float, dopant: int = 0) -> float:
+    """
+    Calculate carrier mobility using Masetti model.
+    EQ: μ = μmin + (μmax - μmin) / (1 + (N / Nref1)^a) - u1 / (1 + (Nref2 / N)^b)
+    
+    Args:
+        N (float): Doping concentration (cm⁻³).
+        dopant (int, optional): Dopant type. Default is 0.
+    
+    Returns:
+        float: Mobility (cm²/Vs).
+        
+    Notes:
+        mobility model from Masetti DOI: 10.1109/T-ED.1983.21207
+        
+    """
+    # if dopant == 0:
+    µmax = 1414
+    µmin = 68.5
+    u1 = 56.1
+    Nref1 = 9.20e16
+    Nref2 = 3.41e20
+    a = 0.711
+    b = 1.98
     if dopant == 1:
         µmax = 470.5
         µmin = 44.9
@@ -537,9 +753,21 @@ def mobility_masetti(N, dopant=0):
     )
 
 
-def mobility_klassen(Nd, Na, delta_n=1, T=298.16):
-    """Return the mobility (cm2/Vs)
-    given the doping etc."""
+def mobility_klassen(Nd: float, Na: float, delta_n: float = 1, T: float = 298.16) -> Tuple[float, float]:
+    """
+    Calculate carrier mobility using Klassen model.
+    EQ: μe = 1 / (1 / μ_eL + 1 / μe_Dah)
+        μh = 1 / (1 / μ_hL + 1 / μh_Dae)
+    
+    Args:
+        Nd (float): Donor concentration (cm⁻³).
+        Na (float): Acceptor concentration (cm⁻³).
+        delta_n (float, optional): Excess carrier density (cm⁻³). Default is 1.
+        T (float, optional): Temperature (K). Default is 298.16.
+    
+    Returns:
+        tuple: Electron and hole mobilities (cm²/Vs).
+    """
     s1 = 0.89233
     s2 = 0.41372
     s3 = 0.19778
@@ -655,9 +883,19 @@ def mobility_klassen(Nd, Na, delta_n=1, T=298.16):
     return µe, µh
 
 
-def mobility_einstein(D, z=1, T=298.15):
-    """Return the mobility (cm²/Vs) or Diffusivity (cm²/s) given the other value.
-    This is also known as the Einstein relation"""
+def mobility_einstein(D: float, z: int = 1, T: float = 298.15) -> float:
+    """
+    Calculate mobility or diffusivity using Einstein relation.
+    EQ: μ = D * z / (k_B * T)
+    
+    Args:
+        D (float): Diffusivity (cm²/s).
+        z (int, optional): Charge number. Default is 1.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Mobility (cm²/Vs).
+    """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, mobility_einstein)
     if lam_res:
@@ -675,9 +913,17 @@ def mobility_einstein(D, z=1, T=298.15):
 
 
 
-def diffusion_length(t, D):
-    """Return carrier Diffusion length (cm)
-    given carrier t(s) and D (units)
+def diffusion_length(t: float, D: float) -> float:
+    """
+    Calculate carrier diffusion length.
+    EQ: L = sqrt(t * D)
+    
+    Args:
+        t (float): Time (s).
+        D (float): Diffusivity (cm²/s).
+    
+    Returns:
+        float: Diffusion length (cm).
     """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, diffusion_length)
@@ -687,7 +933,20 @@ def diffusion_length(t, D):
     res = nsp.sqrt(t * D)
     return res
 
-def debye_length(C, z, epsilon_r, T=298.15):
+def debye_length(C: Union[float, List[float]], z: Union[int, List[int]], epsilon_r: float, T: float = 298.15) -> float:
+    """
+    Calculate Debye length.
+    EQ: λ_D = sqrt(ε_r * ε_0 * k_B * T / (q^2 * C * z^2))
+    
+    Args:
+        C (float): Concentration (cm⁻³).
+        z (int): Charge number.
+        epsilon_r (float): Relative permittivity.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Debye length (cm).
+    """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, debye_length)
     if lam_res:
@@ -712,7 +971,18 @@ def debye_length(C, z, epsilon_r, T=298.15):
     return res
 
 
-def bjerrum_length(epsilon_r, T=298.15):
+def bjerrum_length(epsilon_r: float, T: float = 298.15) -> float:
+    """
+    Calculate Bjerrum length.
+    EQ: λ_B = q^2 / (ε_r * ε_0 * k_B * T)
+    
+    Args:
+        epsilon_r (float): Relative permittivity.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Bjerrum length (cm).
+    """
     arg_in = vars().copy()
     w_units = has_units(arg_in)
     symbolic = all_symbols(arg_in)
@@ -725,8 +995,21 @@ def bjerrum_length(epsilon_r, T=298.15):
 
     return res
 
-def characteristic_length(E, D, t, z=1, T=298.15):
-    """Calculate via the characteristic t."""
+def characteristic_length(E: float, D: float, t: float, z: int = 1, T: float = 298.15) -> float:
+    """
+    Calculate characteristic length.
+    EQ: L_c = 2 * sqrt(D * t) + μ * E * t
+    
+    Args:
+        E (float): Electric field (V/cm).
+        D (float): Diffusivity (cm²/s).
+        t (float): Time (s).
+        z (int, optional): Charge number. Default is 1.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Characteristic length (cm).
+    """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, characteristic_length)
     if lam_res:
@@ -743,8 +1026,20 @@ def characteristic_length(E, D, t, z=1, T=298.15):
 
     return res
 
-def nernst_planck_fundamental_sol(C_0, x, D, t):
-    """Calculate the ratio of C/C0 for arithmatic solution to np"""
+def nernst_planck_fundamental_sol(C_0: float, x: float, D: float, t: float) -> float:
+    """
+    Calculate Nernst-Planck fundamental solution.
+    EQ: C(x, t) = C_0 * erfc(x / (2 * sqrt(D * t)))
+    
+    Args:
+        C_0 (float): Initial concentration (cm⁻³).
+        x (float): Position (cm).
+        D (float): Diffusivity (cm²/s).
+        t (float): Time (s).
+    
+    Returns:
+        float: Concentration (cm⁻³).
+    """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, nernst_planck_fundamental_sol)
     if lam_res:
@@ -754,8 +1049,24 @@ def nernst_planck_fundamental_sol(C_0, x, D, t):
     res = C_0 * erfc((x) / (2 * nsp.sqrt(D * t)))
     return res
 
-def nernst_planck_analytic_sol(C_0, x, L, E, D, t, z=1, T=298.15):
-    """Calculate the ratio of C/C0 for arithmatic solution to np"""
+def nernst_planck_analytic_sol(C_0: float, x: float, L: float, E: float, D: float, t: float, z: int = 1, T: float = 298.15) -> float:
+    """
+    Calculate Nernst-Planck analytic solution.
+    EQ: C(x, t) = (C_0 / (2 * erfc(-μ * E * t / (2 * sqrt(D * t)))) * (erfc((x - μ * E * t) / (2 * sqrt(D * t))) + erfc(-(x - 2 * L + μ * E * t) / (2 * sqrt(D * t))))
+    
+    Args:
+        C_0 (float): Initial concentration (cm⁻³).
+        x (float): Position (cm).
+        L (float): Length (cm).
+        E (float): Electric field (V/cm).
+        D (float): Diffusivity (cm²/s).
+        t (float): Time (s).
+        z (int, optional): Charge number. Default is 1.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Concentration (cm⁻³).
+    """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, nernst_planck_analytic_sol)
     if lam_res:
@@ -780,7 +1091,18 @@ def nernst_planck_analytic_sol(C_0, x, L, E, D, t, z=1, T=298.15):
 
     return res
 
-def screened_permitivity(epsilon_r, kappa, x=1):
+def screened_permitivity(epsilon_r: float, kappa: float, x: float = 1) -> float:
+    """
+    Calculate screened permittivity.
+    
+    Args:
+        epsilon_r (float): Relative permittivity.
+        kappa (float): Screening parameter.
+        x (float, optional): Distance (cm). Default is 1.
+    
+    Returns:
+        float: Screened permittivity (F/cm).
+    """
     arg_in = vars().copy()
     nsp = pick_math_module(arg_in)
     w_units = has_units(arg_in)
@@ -792,7 +1114,18 @@ def screened_permitivity(epsilon_r, kappa, x=1):
 
     return res
 
-def poisson_rhs(C, z, epsilon_r):
+def poisson_rhs(C: Union[float, List[float]], z: int, epsilon_r: float) -> Union[float, List[float]]:
+    """
+    Calculate Poisson right-hand side.
+    
+    Args:
+        C (float): Concentration (cm⁻³).
+        z (int): Charge number.
+        epsilon_r (float): Relative permittivity.
+    
+    Returns:
+        float: Poisson RHS (V/cm²).
+    """
     if isinstance(C, (tuple,list)):
         return [poisson_rhs(var, z, epsilon_r) for var in C]
 
@@ -809,13 +1142,35 @@ def poisson_rhs(C, z, epsilon_r):
 
 
 # %% Recombination & Lifetime
-def U_radiative(n, p):
+def U_radiative(n: float, p: float) -> float:
+    """
+    Calculate radiative recombination rate.
+    
+    Args:
+        n (float): Electron concentration (cm⁻³).
+        p (float): Hole concentration (cm⁻³).
+    
+    Returns:
+        float: Radiative recombination rate (cm⁻³/s).
+    """
     B_rad = 4.73e-15
     U_radiative = n * p * B_rad
     return U_radiative
 
 
-def U_radiative_alt(n0, p0, delta_n, T=298.15):
+def U_radiative_alt(n0: float, p0: float, delta_n: float, T: float = 298.15) -> float:
+    """
+    Calculate alternative radiative recombination rate.
+    
+    Args:
+        n0 (float): Initial electron concentration (cm⁻³).
+        p0 (float): Initial hole concentration (cm⁻³).
+        delta_n (float): Excess carrier density (cm⁻³).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: Radiative recombination rate (cm⁻³/s).
+    """
     n_p = n0 + p0 + 2 * delta_n
     n = n0 + delta_n
     p = p0 + delta_n
@@ -831,9 +1186,22 @@ def U_radiative_alt(n0, p0, delta_n, T=298.15):
     return U_radiative_alt
 
 
-def U_SRH(n, p, Et, tau_n, tau_p, ni_eff=8.5e9, T=298.15):
-    """Return the shockley read hall recombination cm-3
-    given Et (eV) trap level from intrinsic"""
+def U_SRH(n: float, p: float, Et: float, tau_n: float, tau_p: float, ni_eff: float = 8.5e9, T: float = 298.15) -> float:
+    """
+    Calculate Shockley-Read-Hall recombination rate.
+    
+    Args:
+        n (float): Electron concentration (cm⁻³).
+        p (float): Hole concentration (cm⁻³).
+        Et (float): Trap energy level (eV).
+        tau_n (float): Electron lifetime (s).
+        tau_p (float): Hole lifetime (s).
+        ni_eff (float, optional): Effective intrinsic carrier concentration (cm⁻³). Default is 8.5e9.
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: SRH recombination rate (cm⁻³/s).
+    """
     arg_in = vars().copy()
     nsp = pick_math_module(arg_in)
     w_units = has_units(arg_in)
@@ -845,10 +1213,22 @@ def U_SRH(n, p, Et, tau_n, tau_p, ni_eff=8.5e9, T=298.15):
     return res
 
 
-def U_auger_richter(n0, p0, delta_n, ni_eff):
-    """Return the auger recombination
-    18 and 19
-    https://doi.org/10.1016/j.egypro.2012.07.034"""
+def U_auger_richter(n0: float, p0: float, delta_n: float, ni_eff: float) -> float:
+    """
+    Calculate Auger recombination rate.
+    
+    Args:
+        n0 (float): Initial electron concentration (cm⁻³).
+        p0 (float): Initial hole concentration (cm⁻³).
+        delta_n (float): Excess carrier density (cm⁻³).
+        ni_eff (float): Effective intrinsic carrier concentration (cm⁻³).
+    
+    Returns:
+        float: Auger recombination rate (cm⁻³/s).
+
+    Notes:
+        https://doi.org/10.1016/j.egypro.2012.07.034
+    """
     arg_in = vars().copy()
     lam_res, symb_var = has_arrays(arg_in, U_auger_richter)
     if lam_res:
@@ -872,9 +1252,21 @@ def U_auger_richter(n0, p0, delta_n, ni_eff):
     return res
 
 
-def U_low_doping(n0, p0, delta_n):
-    """recombination due to Auger and radiative
-    equation 21 in DOI: 10.1103/PhysRevB.86.165202"""
+def U_low_doping(n0: float, p0: float, delta_n: float) -> float:
+    """
+    alculate recombination rate at low doping.
+    
+    Args:
+        n0 (float): Initial electron concentration (cm⁻³).
+        p0 (float): Initial hole concentration (cm⁻³).
+        delta_n (float): Excess carrier density (cm⁻³).
+    
+    Returns:
+        float: Recombination rate (cm⁻³/s).
+
+    Notes:
+        equation 21 in DOI: 10.1103/PhysRevB.86.165202
+    """
     B_low = 4.73e-15
     n = n0 + delta_n
     p = p0 + delta_n
@@ -886,53 +1278,115 @@ def U_low_doping(n0, p0, delta_n):
     return U
 
 
-def U_surface(n, p, Sn, Sp, n1=8.3e9, p1=8.3e9, **kwargs):
-    """Return the carrier recombination (/s) at a surface.
-    Where.
-    Sn, Sp: surface recombination for electrons and holes
-    n1, p1 XXX
-    ni - intrinsice carrier concentratoin (cm-3)"""
+def U_surface(n: float, p: float, Sn: float, Sp: float, n1: float = 8.3e9, p1: float = 8.3e9, **kwargs) -> float:
+    """
+    Calculate surface recombination rate.
+    
+    Args:
+        n (float): Electron concentration (cm⁻³).
+        p (float): Hole concentration (cm⁻³).
+        Sn (float): Surface recombination velocity for electrons (cm/s).
+        Sp (float): Surface recombination velocity for holes (cm/s).
+        n1 (float, optional): Electron concentration at surface (cm⁻³). Default is 8.3e9.
+        p1 (float, optional): Hole concentration at surface (cm⁻³). Default is 8.3e9.
+        **kwargs: Additional arguments.
+    
+    Returns:
+        float: Surface recombination rate (cm⁻³/s).
+    """
     ni = kwargs.get("ni", ni_Si(kwargs.get("T", 298.15)))
     U_surface = Sn * Sp * (n * p - ni**2) / (Sn * (n + n1) + Sp * (p + p1))
     return U_surface
 
 
-def lifetime(U, delta_n):
-    """Return the lifetime (seconds).
-    U is the recombination  and delta_n is the excess minority carrier density.
-    This is the definition of lifetime"""
+def lifetime(U: float, delta_n: float) -> float:
+    """
+    Calculate carrier lifetime.
+    
+    Args:
+        U (float): Recombination rate (cm⁻³/s).
+        delta_n (float): Excess carrier density (cm⁻³).
+    
+    Returns:
+        float: Carrier lifetime (s).
+    """
     return delta_n / U
 
 
-def lifetime_eff(*lifetimes):
-    """Return the lifetime (seconds).
-    U is the recombination  and delta_n is the excess minority carrier density.
-    This is the definition of lifetime"""
+def lifetime_eff(*lifetimes: float) -> float:
+    """
+    Calculate effective carrier lifetime.
+    
+    Args:
+        *lifetimes: Individual lifetimes (s).
+    
+    Returns:
+        float: Effective carrier lifetime (s).
+    """
     return inv_sum_invs(*lifetimes)
 
 
-def lifetime_bulk(tau_eff, S, thickness):
-    """Return the bulk lifetime (s)
-    Given tau_eff (s)
-    surface recombination (cm/s)
-    thickness (cm)
+def lifetime_bulk(tau_eff: float, S: float, thickness: float) -> float:
+    """
+    Calculate bulk carrier lifetime.
+    
+    Args:
+        tau_eff (float): Effective lifetime (s).
+        S (float): Surface recombination velocity (cm/s).
+        thickness (float): Thickness (cm).
+    
+    Returns:
+        float: Bulk carrier lifetime (s).
     """
     return tau_eff - thickness / (2 * S)
 
 
-def lifetime_minority(N, tao_0=0.001, N_ref=1e17):
-    """Return the miority carrier lifetime for a given doping level"""
+def lifetime_minority(N: float, tao_0: float = 0.001, N_ref: float = 1e17) -> float:
+    """
+    Calculate minority carrier lifetime.
+    
+    Args:
+        N (float): Doping concentration (cm⁻³).
+        tao_0 (float, optional): Initial lifetime (s). Default is 0.001.
+        N_ref (float, optional): Reference doping concentration (cm⁻³). Default is 1e17.
+    
+    Returns:
+        float: Minority carrier lifetime (s).
+    """
     return tao_0 / (1 + N / N_ref)
 
 
 # not sure if I should keep these
-def lifetime_auger(delta_n, Ca=1.66e-30):
-    """Returns the Auger lifetime (s) at high level injection
-    given the injection level (cm-3)"""
+def lifetime_auger(delta_n: float, Ca: float = 1.66e-30) -> float:
+    """
+    Calculate Auger lifetime.
+    
+    Args:
+        delta_n (float): Excess carrier density (cm⁻³).
+        Ca (float, optional): Auger coefficient. Default is 1.66e-30.
+    
+    Returns:
+        float: Auger lifetime (s).
+    """
     return 1 / (Ca * delta_n**2)
 
 
-def lifetime_SRH(N, Nt, Et, sigma__n, sigma__p, delta_n, T=298.15):
+def lifetime_SRH(N: float, Nt: float, Et: float, sigma__n: float, sigma__p: float, delta_n: float, T: float = 298.15) -> None:
+    """
+    Calculate Shockley-Read-Hall lifetime.
+    
+    Args:
+        N (float): Doping concentration (cm⁻³).
+        Nt (float): Trap concentration (cm⁻³).
+        Et (float): Trap energy level (eV).
+        sigma__n (float): Electron capture cross-section (cm²).
+        sigma__p (float): Hole capture cross-section (cm²).
+        delta_n (float): Excess carrier density (cm⁻³).
+        T (float, optional): Temperature (K). Default is 298.15.
+    
+    Returns:
+        float: SRH lifetime (s).
+    """
     # TODO needs correction
     # p0 = N
     # n0 = (ni_Si(T) ** 2) / N

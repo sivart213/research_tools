@@ -8,6 +8,9 @@ General function file
 """
 
 import re
+
+from typing import Union, Optional, Tuple, List
+
 import numpy as np
 import sympy as sp
 import scipy.special as scs
@@ -19,33 +22,87 @@ from ..functions import get_const, has_units, extract_variable, ode_bounds
 
 
 # %% General
-def sind(angle):
-    """Return the sine of the angle(degrees)."""
+def sind(angle: float) -> float:
+    """
+    Return the sine of the angle in degrees.
+    EQ: sin(angle) = sin(angle * π / 180)
+    
+    Args:
+        angle (float): Angle in degrees.
+    
+    Returns:
+        float: Sine of the angle.
+    """
     return np.sin(np.radians(angle))
 
 
-def cosd(angle):
-    """Return the cosine of the angle(degrees)."""
+def cosd(angle: float) -> float:
+    """
+    Return the cosine of the angle in degrees.
+    EQ: cos(angle) = cos(angle * π / 180)
+    
+    Args:
+        angle (float): Angle in degrees.
+    
+    Returns:
+        float: Cosine of the angle.
+    """
     return np.cos(np.radians(angle))
 
 
-def tand(angle):
-    """Return the tangent of the angle(degrees)."""
+def tand(angle: float) -> float:
+    """
+    Return the tangent of the angle in degrees.
+    EQ: tan(angle) = tan(angle * π / 180)
+    
+    Args:
+        angle (float): Angle in degrees.
+    
+    Returns:
+        float: Tangent of the angle.
+    """
     return np.tan(np.radians(angle))
 
 
-def arcsind(x):
-    """Return the arcsin (degrees)."""
+def arcsind(x: float) -> float:
+    """
+    Return the arcsine in degrees.
+    EQ: arcsin(x) = arcsin(x) * 180 / π
+    
+    Args:
+        x (float): Value.
+    
+    Returns:
+        float: Arcsine in degrees.
+    """
     return np.degrees(np.arcsin(x))
 
 
-def arccosd(x):
-    """Return the arccos (degrees)."""
+def arccosd(x: float) -> float:
+    """
+    Return the arccosine in degrees.
+    EQ: arccos(x) = arccos(x) * 180 / π
+    
+    Args:
+        x (float): Value.
+    
+    Returns:
+        float: Arccosine in degrees.
+    """
     return np.degrees(np.arccos(x))
 
 
-def inv_sum_invs(*arr):
-    """Calculate. generic discription."""
+def inv_sum_invs(*arr: Union[List[float], np.ndarray]) -> float:
+    """
+    Calculate the inverse of the sum of inverses.
+    EQ: 1 / sum(1 / arr)
+    
+    Args:
+        *arr: List of values.
+    
+    Returns:
+        float: Inverse of the sum of inverses.
+    """
     if isinstance(arr[0], (list, np.ndarray)):
         arr = arr[0]
     if not isinstance(arr, np.ndarray):
@@ -53,8 +110,19 @@ def inv_sum_invs(*arr):
     return 1 / sum(1 / arr)
 
 
-def arrh(A0, Ea, T):
-    """Calculate. generic discription."""
+def arrh(A0: float, Ea: float, T: float) -> float:
+    """
+    Calculate the Arrhenius equation.
+    EQ: A = A0 * exp(-Ea / (k_B * T))
+    
+    Args:
+        A0 (float): Pre-exponential factor.
+        Ea (float): Activation energy (eV).
+        T (float): Temperature (K).
+    
+    Returns:
+        float: Arrhenius value.
+    """
     w_units = has_units(vars())
 
     k_B = get_const("boltzmann", w_units, ["eV", "K"])
@@ -66,8 +134,17 @@ def arrh(A0, Ea, T):
     return res
 
 
-def erf(z):
-    """Calculate. generic discription."""
+def erf(z: float) -> float:
+    """
+    Calculate the error function.
+    EQ: erf(z) = 2 / sqrt(π) * ∫ exp(-t^2) dt from 0 to z
+    
+    Args:
+        z (float): Value.
+    
+    Returns:
+        float: Error function value.
+    """
     if isinstance(z, sp.Basic):
         res = sp.erf(z)
     else:
@@ -78,20 +155,38 @@ def erf(z):
     return res
 
 
-def erfinv(z):
-    """Calculate. generic discription."""
+def erfinv(z: float) -> float:
+    """
+    Calculate the inverse error function.
+    EQ: erfinv(z) = inverse of erf(z)
+    
+    Args:
+        z (float): Value.
+    
+    Returns:
+        float: Inverse error function value.
+    """
     if isinstance(z, sp.Basic):
         res = sp.erfinv(z)
     else:
-        res = scs.erfinv(z)
+        res = scs.erfinv(z) # https://github.com/PyCQA/pylint/issues/3744 pylint: disable=no-member
 
     if isinstance(res, sp.Number):
         return float(res)
     return res
 
 
-def erfc(z):
-    """Calculate. generic discription."""
+def erfc(z: float) -> float:
+    """
+    Calculate the complementary error function.
+    EQ: erfc(z) = 1 - erf(z)
+    
+    Args:
+        z (float): Value.
+    
+    Returns:
+        float: Complementary error function value.
+    """
     if isinstance(z, sp.Basic):
         res = sp.erfc(z)
     else:
@@ -102,8 +197,17 @@ def erfc(z):
     return res
 
 
-def erfcinv(z):
-    """Calculate. generic discription."""
+def erfcinv(z: float) -> float:
+    """
+    Calculate the inverse complementary error function.
+    EQ: erfcinv(z) = inverse of erfc(z)
+    
+    Args:
+        z (float): Value.
+    
+    Returns:
+        float: Inverse complementary error function value.
+    """
     if isinstance(z, sp.Basic):
         res = sp.erfcinv(z)
     else:
@@ -114,11 +218,20 @@ def erfcinv(z):
     return res
 
 
-def polynomial(*coeff, x=None):
+def polynomial(*coeff: float, x: Optional[float] = None) -> float:
     """
     Compute polynomial using Horner's Method.
-
-    *coeff where C is a vector of coefficients, highest order coefficient at C[0].
+    EQ: P(x) = C0 + C1*x + C2*x^2 + ... + Cn*x^n
+    
+    Args:
+        *coeff: Coefficients of the polynomial.
+        x (float, optional): Variable. Default is None.
+    
+    Returns:
+        float: Polynomial value.
+    
+    Notes:
+        C is a vector of coefficients, highest order coefficient at C[0].
     """
     if x is None:
         x = sp.symbols("x", real=True)
@@ -132,7 +245,19 @@ def polynomial(*coeff, x=None):
         return res.expand()
     return res
 
-def piecewise(*args, var="x", **kwargs):
+def piecewise(*args: Union[Tuple[float, float], List[float]], var: str = "x", **kwargs) -> sp.Piecewise:
+    """
+    Compute piecewise function.
+    EQ: Piecewise((expr1, cond1), (expr2, cond2), ...)
+    
+    Args:
+        *args: List of tuples representing piecewise conditions.
+        var (str, optional): Variable. Default is "x".
+        **kwargs: Additional arguments.
+    
+    Returns:
+        sympy.Piecewise: Piecewise function.
+    """
     args=tuple(args)
     if not isinstance(args[0], (list, tuple)):
         args = tuple([args])
@@ -182,7 +307,21 @@ def piecewise(*args, var="x", **kwargs):
 
     return sp.Piecewise(*[(a[0], a[1]) for a in pairs], evaluate=False)
 
-def ode(f=None, x=None, deg=2, expr=0, **kwargs):
+def ode(f: Optional[sp.Function] = None, x: Optional[sp.Symbol] = None, deg: int = 2, expr: Union[sp.Expr, int] = 0, **kwargs) -> sp.Eq:
+    """
+    Compute ordinary differential equation.
+    EQ: d^deg(f(x)) / dx^deg = expr
+    
+    Args:
+        f (sympy.Function, optional): Function. Default is None.
+        x (sympy.Symbol, optional): Variable. Default is None.
+        deg (int, optional): Degree of the differential equation. Default is 2.
+        expr (sympy.Expr, optional): Expression. Default is 0.
+        **kwargs: Additional arguments.
+    
+    Returns:
+        sympy.Eq: Differential equation.
+    """
     if isinstance(expr, sp.Piecewise):
         expr = sp.piecewise_fold(expr)
 
@@ -209,7 +348,21 @@ def ode(f=None, x=None, deg=2, expr=0, **kwargs):
 
 
 
-def integral(x=None, bound=None, deg=2, expr=0, **kwargs):
+def integral(x: Optional[sp.Symbol] = None, bound: Optional[Tuple[float, float]] = None, deg: int = 2, expr: Union[sp.Expr, int] = 0, **kwargs) -> Union[sp.Expr, Tuple[sp.Expr, sp.Symbol]]:
+    """
+    Compute integral.
+    EQ: ∫ expr dx
+    
+    Args:
+        x (sympy.Symbol, optional): Variable. Default is None.
+        bound (tuple, optional): Integration bounds. Default is None.
+        deg (int, optional): Degree of the integral. Default is 2.
+        expr (sympy.Expr, optional): Expression. Default is 0.
+        **kwargs: Additional arguments.
+    
+    Returns:
+        sympy.Expr: Integral.
+    """
     if isinstance(expr, sp.Piecewise):
         expr = sp.piecewise_fold(expr)
 
@@ -238,14 +391,36 @@ def integral(x=None, bound=None, deg=2, expr=0, **kwargs):
 
 
 # %% Geometric
-def line(x, m=1, b=0):
-    """Calculate the equation of a line."""
+def line(x: float, m: float = 1, b: float = 0) -> float:
+    """
+    Calculate the equation of a line.
+    EQ: y = m * x + b
+    
+    Args:
+        x (float): Variable.
+        m (float, optional): Slope. Default is 1.
+        b (float, optional): Intercept. Default is 0.
+    
+    Returns:
+        float: Line equation value.
+    """
     res = m * x + b
     return res
 
 
-def arc(h, a, r):
-    """Calculate. generic discription."""
+def arc(h: float, a: float, r: float) -> float:
+    """
+    Calculate the radius of an arc.
+    EQ: r = (a^2 + h^2) / (2 * h)
+    
+    Args:
+        h (float): Height.
+        a (float): Chord length.
+        r (float): Radius.
+    
+    Returns:
+        float: Radius of the arc.
+    """
     if isinstance(a, (list, tuple, np.ndarray)):
         a = sp.sqrt(a[0] ** 2 + a[1] ** 2)
     res = (a**2 + h**2) / (2 * h)
@@ -254,38 +429,60 @@ def arc(h, a, r):
     return res
 
 
-def sphere_vol(h=None, a=None, r=None):
-    """Calculate. generic discription."""
+def sphere_vol(h: Optional[float] = None, a: Optional[float] = None, r: Optional[float] = None) -> float:
+    """
+    Calculate the volume of a sphere.
+    EQ: V = π * h^2 / 3 * (3 * r - h)
+    
+    Args:
+        h (float, optional): Height. Default is None.
+        a (float, optional): Chord length. Default is None.
+        r (float, optional): Radius. Default is None.
+    
+    Returns:
+        float: Volume of the sphere.
+    """
     if isinstance(a, (list, tuple, np.ndarray)):
         a = sp.sqrt(a[0] ** 2 + a[1] ** 2)
 
     if h is None and a is None:
         h = 2 * r
     elif r is None:
-        r = arc(h, a)
+        r = arc(h, a, None)
     elif h is None:
         h = arc(None, a, r)
 
     res = np.pi * h**2 / 3 * (3 * r - h)
-    if isinstance(res, sp.Number):
+    if isinstance(res, sp.Number) or isinstance(res/sp.pi, sp.Number):
         return float(res)
     return res
 
 
-def sphere_area(h=None, a=None, r=None):
-    """Calculate. generic discription."""
+def sphere_area(h: Optional[float] = None, a: Optional[float] = None, r: Optional[float] = None) -> float:
+    """
+    Calculate the surface area of a sphere.
+    EQ: A = 2 * π * r * h
+    
+    Args:
+        h (float, optional): Height. Default is None.
+        a (float, optional): Chord length. Default is None.
+        r (float, optional): Radius. Default is None.
+    
+    Returns:
+        float: Surface area of the sphere.
+    """
     if isinstance(a, (list, tuple, np.ndarray)):
         a = sp.sqrt(a[0] ** 2 + a[1] ** 2)
 
     if h is None and a is None:
         h = 2 * r
     elif r is None:
-        r = arc(h, a)
+        r = arc(h, a, None)
     elif h is None:
         h = arc(None, a, r)
 
     res = 2 * sp.pi * r * h
-    if isinstance(res, sp.Number):
+    if isinstance(res, sp.Number) or isinstance(res/sp.pi, sp.Number):
         return float(res)
     return res
 
@@ -293,62 +490,182 @@ def sphere_area(h=None, a=None, r=None):
 # %% Temperature
 
 
-def FtoC(T):
+def FtoC(T: float) -> float:
+    """
+    Convert Fahrenheit to Celsius.
+    EQ: T_C = (T_F - 32) * 5 / 9
+    
+    Args:
+        T (float): Temperature in Fahrenheit.
+    
+    Returns:
+        float: Temperature in Celsius.
+    """
     res = (T - 32) * 5.0 / 9.0
     return res
 
 
-def FtoK(T):
+def FtoK(T: float) -> float:
+    """
+    Convert Fahrenheit to Kelvin.
+    EQ: T_K = (T_F - 32) * 5 / 9 + 273.15
+    
+    Args:
+        T (float): Temperature in Fahrenheit.
+    
+    Returns:
+        float: Temperature in Kelvin.
+    """
     res = (T - 32) * 5.0 / 9.0 + 273.15
     return res
 
 
-def FtoR(T):
+def FtoR(T: float) -> float:
+    """
+    Convert Fahrenheit to Rankine.
+    EQ: T_R = T_F + 459.67
+    
+    Args:
+        T (float): Temperature in Fahrenheit.
+    
+    Returns:
+        float: Temperature in Rankine.
+    """
     res = T - 32 + (273.15 * 9.0 / 5.0)
     return res
 
 
-def CtoF(T):
+def CtoF(T: float) -> float:
+    """
+    Convert Celsius to Fahrenheit.
+    EQ: T_F = T_C * 9 / 5 + 32
+    
+    Args:
+        T (float): Temperature in Celsius.
+    
+    Returns:
+        float: Temperature in Fahrenheit.
+    """
     res = T * 9.0 / 5.0 + 32
     return res
 
 
-def CtoK(T):
+def CtoK(T: float) -> float:
+    """
+    Convert Celsius to Kelvin.
+    EQ: T_K = T_C + 273.15
+    
+    Args:
+        T (float): Temperature in Celsius.
+    
+    Returns:
+        float: Temperature in Kelvin.
+    """
     res = T + 273.15
     return res
 
 
-def CtoR(T):
+def CtoR(T: float) -> float:
+    """
+    Convert Celsius to Rankine.
+    EQ: T_R = (T_C + 273.15) * 9 / 5
+    
+    Args:
+        T (float): Temperature in Celsius.
+    
+    Returns:
+        float: Temperature in Rankine.
+    """
     res = (T + 273.15) * 9.0 / 5.0
     return res
 
 
-def KtoF(T):
+def KtoF(T: float) -> float:
+    """
+    Convert Kelvin to Fahrenheit.
+    EQ: T_F = (T_K - 273.15) * 9 / 5 + 32
+    
+    Args:
+        T (float): Temperature in Kelvin.
+    
+    Returns:
+        float: Temperature in Fahrenheit.
+    """
     res = (T - 273.15) * 9.0 / 5.0 + 32
     return res
 
 
-def KtoC(T):
+def KtoC(T: float) -> float:
+    """
+    Convert Kelvin to Celsius.
+    EQ: T_C = T_K - 273.15
+    
+    Args:
+        T (float): Temperature in Kelvin.
+    
+    Returns:
+        float: Temperature in Celsius.
+    """
     res = T - 273.15
     return res
 
 
-def KtoR(T):
+def KtoR(T: float) -> float:
+    """
+    Convert Kelvin to Rankine.
+    EQ: T_R = T_K * 9 / 5
+    
+    Args:
+        T (float): Temperature in Kelvin.
+    
+    Returns:
+        float: Temperature in Rankine.
+    """
     res = T * 9.0 / 5.0
     return res
 
 
-def RtoF(T):
+def RtoF(T: float) -> float:
+    """
+    Convert Rankine to Fahrenheit.
+    EQ: T_F = T_R - 459.67
+    
+    Args:
+        T (float): Temperature in Rankine.
+    
+    Returns:
+        float: Temperature in Fahrenheit.
+    """
     res = T + 32 - (273.15 * 9.0 / 5.0)
     return res
 
 
-def RtoC(T):
+def RtoC(T: float) -> float:
+    """
+    Convert Rankine to Celsius.
+    EQ: T_C = (T_R - 491.67) * 5 / 9
+    
+    Args:
+        T (float): Temperature in Rankine.
+    
+    Returns:
+        float: Temperature in Celsius.
+    """
     res = (T * 5.0 / 9.0) - 273.15
     return res
 
 
-def RtoK(T):
+def RtoK(T: float) -> float:
+    """
+    Convert Rankine to Kelvin.
+    EQ: T_K = T_R * 5 / 9
+    
+    Args:
+        T (float): Temperature in Rankine.
+    
+    Returns:
+        float: Temperature in Kelvin.
+    """
     res = T * 5.0 / 9.0
     return res
 
@@ -376,6 +693,7 @@ class Statistics:
         self.indep = indep
         self.weight = weight
         self.n_param = n_param
+    
 
         if "int" in resid_type.lower():
             self._resid = self.int_std_res
@@ -639,7 +957,7 @@ class Statistics:
         eps = kwargs.get("eps", np.sqrt(np.finfo(float).eps))
 
         if func is None and hasattr(self, "func"):
-            func = self.func
+            func = getattr(self, "func")
         elif func is callable:
             self.func = func
 
