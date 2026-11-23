@@ -657,7 +657,13 @@ def find_files(
         patterns = [patterns]
 
     if patterns:
-        compiled_patterns = [re.compile(pattern) for pattern in patterns]
+        compiled_patterns = []
+        for pattern in patterns:
+            try:
+                compiled_patterns.append(re.compile(pattern))
+            except re.error:
+                continue
+        # compiled_patterns = [re.compile(pattern) ]
         f_filter = lambda x: all(
             pattern.search(str(x)) for pattern in compiled_patterns
         )

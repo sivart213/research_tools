@@ -41,19 +41,32 @@ if "kindlmann" not in mpl.colormaps() or "kindlmann_r" not in mpl.colormaps():
         )
     )
     col_arr = csv.iloc[:, 1:].to_numpy()
-
-    if "kindlmann" not in mpl.colormaps():
-        mpl.cm.register_cmap(
-            "kindlmann",
-            mpl.colors.LinearSegmentedColormap.from_list("kindlmann", col_arr),
-        )
-    if "kindlmann_r" not in mpl.colormaps():
-        mpl.cm.register_cmap(
-            "kindlmann_r",
-            mpl.colors.LinearSegmentedColormap.from_list(
-                "kindlmann", col_arr
-            ).reversed(),
-        )
+    try:
+        if "kindlmann" not in mpl.colormaps():
+            mpl.cm.register_cmap(
+                "kindlmann",
+                mpl.colors.LinearSegmentedColormap.from_list("kindlmann", col_arr),
+            )
+        if "kindlmann_r" not in mpl.colormaps():
+            mpl.cm.register_cmap(
+                "kindlmann_r",
+                mpl.colors.LinearSegmentedColormap.from_list(
+                    "kindlmann", col_arr
+                ).reversed(),
+            )
+    except AttributeError:
+        if "kindlmann" not in list(mpl.colormaps):
+            mpl.colormaps.register(
+                mpl.colors.LinearSegmentedColormap.from_list("kindlmann", col_arr),
+                name="kindlmann",
+            )
+        if "kindlmann_r" not in list(mpl.colormaps):
+            mpl.colormaps.register(
+                mpl.colors.LinearSegmentedColormap.from_list(
+                    "kindlmann", col_arr
+                ).reversed(),
+                name="kindlmann_r",
+            )
 
 def get_style(styl_str):
     if styl_str in style.available:
