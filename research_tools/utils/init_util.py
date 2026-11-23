@@ -20,9 +20,10 @@ import inspect as ins
 from pathlib import Path
 from shutil import copytree, ignore_patterns, rmtree
 
+
 def print_init(target, pth=None, ignore=None):
     if pth is None:
-        pth = Path.cwd()/target
+        pth = Path.cwd() / target
 
     if ignore is None:
         ignore = []
@@ -41,8 +42,8 @@ def print_init(target, pth=None, ignore=None):
     for f in filesurvey:
         if f.is_file() and f.stem not in ignore:
             try:
-                spec = importlib.util.spec_from_file_location(f.stem, f)
-                module = importlib.util.module_from_spec(spec)
+                spec = importlib.util.spec_from_file_location(f.stem, f)  # type: ignore
+                module = importlib.util.module_from_spec(spec)  # type: ignore
                 sys.modules[target] = module
                 spec.loader.exec_module(module)
                 modules.append([".".join(f.relative_to(pth).parts)[:-3], module])
@@ -55,56 +56,59 @@ def print_init(target, pth=None, ignore=None):
         ctmp = ins.getmembers(targ[1], ins.isclass)
         tmp = ftmp + ctmp
         if len(tmp) > 0:
-            res[targ[0]] = sorted([t[0] for t in tmp if targ[1].__name__ == t[1].__module__], key=str.lower)
+            res[targ[0]] = sorted(
+                [t[0] for t in tmp if targ[1].__name__ == t[1].__module__],
+                key=str.lower,
+            )
 
     for k, v in res.items():
         print(f"from .{k} import (", end="\n    ")
-        print(*v, sep = ",\n    ", end=",\n)\n")
+        print(*v, sep=",\n    ", end=",\n)\n")
         print("")
     print("")
-    print(f"__all__ = [", end="\n")
+    print("__all__ = [", end="\n")
     for k, v in res.items():
-        print("    \"", end="")
-        print(*v, sep = "\",\n    \"", end="\",\n")
+        print('    "', end="")
+        print(*v, sep='",\n    "', end='",\n')
         print("")
     print("]\n")
 
 
-def manage_research_tools(source=None, base=None, ignore="archive", **kwargs):
+def manage_research_tools(
+    source: str | Path | None = None,
+    base: str | Path | None = None,
+    ignore: str | list[str] | tuple[str, ...] | set[str] = "archive",
+    **kwargs,
+):
     """
     action:
         copy, deep_copy, remove
     """
-    if source is None:
-        source = Path.cwd()
-    if base is None:
-        base = source.parent
 
-    source = Path(source)
-    base = Path(base)
+    source = Path.cwd() if source is None else Path(source)
+    base = source.parent if base is None else Path(base)
+    ignore = [ignore] if isinstance(ignore, str) else list(ignore)
 
-    if isinstance(ignore, str):
-        ignore = [ignore]
     pths = [f for f in base.iterdir() if f.is_dir() and f.stem not in ignore]
 
     pths.remove(source)
 
-    ignore.insert(0, '__pycache*')
+    ignore.insert(0, "__pycache*")
     for p in pths:
         if kwargs.get("remove", False):
-            rmtree(p/p.stem/source.stem, ignore_errors=True)
+            rmtree(p / p.stem / source.stem, ignore_errors=True)
         elif kwargs.get("deep_copy", False):
-            rmtree(p/p.stem/source.stem, ignore_errors=True)
+            rmtree(p / p.stem / source.stem, ignore_errors=True)
             copytree(
-                source/source.stem,
-                p/source.stem,
+                source / source.stem,
+                p / source.stem,
                 ignore=ignore_patterns(*ignore),
                 dirs_exist_ok=True,
             )
         elif kwargs.get("copy", True):
             copytree(
-                source/source.stem,
-                p/source.stem,
+                source / source.stem,
+                p / source.stem,
                 ignore=ignore_patterns(*ignore),
                 dirs_exist_ok=True,
             )
@@ -122,9 +126,8 @@ if __name__ == "__main__":
         "pso",
         "statistics",
         "init_util",
-        ]
+    ]
 
     # print_init(target, find_path(target, base=Path.cwd().parent), ignore=ignores)
-
 
     manage_research_tools(ignore=["archive", "utils", ".obsidian", "Obsidian Code"])

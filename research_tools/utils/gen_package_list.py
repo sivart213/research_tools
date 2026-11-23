@@ -16,7 +16,6 @@ import importlib_metadata
 import yaml
 
 
-
 class node_iter(ast.NodeVisitor):
     def __init__(self, exclude=None):
         self.modules = set()
@@ -73,6 +72,7 @@ class dir_iter(object):
 
     def walk(self, path):
         if isinstance(path, (str, Path)):
+            path = Path(path)
             node_objs = node_iter(self.exclude)
             with open(str(path.absolute())) as f:
                 node_objs.visit(ast.parse(f.read()))
@@ -88,34 +88,36 @@ class dir_iter(object):
 
         df = pd.json_normalize(
             json.loads(
-                subprocess.run(instr, stdout=subprocess.PIPE).stdout.decode(
-                    "utf-8"
-                )
+                subprocess.run(instr, stdout=subprocess.PIPE).stdout.decode("utf-8")
             )
         )
 
         dists = importlib_metadata.packages_distributions()
         pkgs = [
-            dists[m][0]
-            if m in self.modules.difference(df["name"]) and m in dists.keys()
-            else m
+            (
+                dists[m][0]
+                if m in self.modules.difference(df["name"]) and m in dists.keys()
+                else m
+            )
             for m in self.modules
         ]
 
         return df.loc[df["name"].isin(pkgs)].reset_index(drop=True)
 
-def gen_env_list(files, env_nm = "env", exclude=None, out_path=None, version=False, python_version=True):
+
+def gen_env_list(
+    files, env_nm="env", exclude=None, out_path=None, version=False, python_version=True
+):
 
     mod_res = dir_iter(exclude=exclude)
     mod_res.walk(files)
     mods = mod_res.modules
 
     pkgs = mod_res.packages("my_env")
-    
-    
+
     pkgs_nonpip = pkgs.loc[pkgs["channel"] != "pypi"].reset_index(drop=True)
     pkgs_nonpip["name_version"] = pkgs_nonpip["name"] + "=" + pkgs_nonpip["version"]
-    
+
     pkgs_pip = pkgs.loc[pkgs["channel"] == "pypi"].reset_index(drop=True)
     pkgs_pip["name_version"] = pkgs_pip["name"] + "==" + pkgs_pip["version"]
 
@@ -124,22 +126,24 @@ def gen_env_list(files, env_nm = "env", exclude=None, out_path=None, version=Fal
 
     dep_nm = "name"
     if version:
-        dep_nm = "name_version"  
+        dep_nm = "name_version"
     if not version and python_version:
         depd = [
-            d
-            if d != "python"
-            else ".".join(pkgs_nonpip.loc[n, "name_version"].split(".")[:2])
+            (
+                d
+                if d != "python"
+                else ".".join(pkgs_nonpip.loc[n, "name_version"].split(".")[:2])  # type: ignore
+            )
             for n, d in enumerate(pkgs_nonpip[dep_nm])
         ]
     else:
         depd = list(pkgs_nonpip[dep_nm])
-    
+
     if pkgs.isin(["pypi"]).any().any():
         depd.append(dict(pip=list(pkgs_pip[dep_nm])))
 
     if out_path is not None and Path(out_path).exists():
-        with open(Path(out_path)/f"{env_nm}.yml", "w") as file:
+        with open(Path(out_path) / f"{env_nm}.yml", "w") as file:
             yaml.dump(
                 dict(
                     name=env_nm,
@@ -153,7 +157,8 @@ def gen_env_list(files, env_nm = "env", exclude=None, out_path=None, version=Fal
         return
     else:
         return depd
-    
+
+
 target = ["research_tools"]
 # target = ["impedance_analysis", "ion_migration", "iv_analysis"]
 
@@ -161,11 +166,7 @@ target = ["research_tools"]
 files = [
     find_files(find_path(t, base=Path.cwd()), patterns=r"[^_][.]py$") for t in target
 ]
-files = [
-    item for row in files for item in row if "archive" not in str(item).lower()
-]
+files = [item for row in files for item in row if "archive" not in str(item).lower()]
 exclude = [f.stem for f in files]
 
 gen_env_list(files, "requirements", exclude, Path.home(), True, False)
-
-
