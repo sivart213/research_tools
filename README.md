@@ -17,8 +17,8 @@ Option 2: pip install directly from github
 If using conda, be sure install in a separate environment to protect your installation.
 
 ### Alternate
-Code should also be available for use if "research_tools" folder is placed into your own directory
-
+Code should also be available for use if "research_tools" folder is placed into your own directory.
+ 
 
 ## Contents
 - `utils`: Contains project management scripts unrelated to the library
